@@ -14,6 +14,7 @@ export default defineConfig({
     logo: '/logo.svg',
     siteTitle: 'LLM Wiki',
     nav: [
+      { text: '速查', link: '/cheatsheets/' },
       { text: '学习', link: '/learn/' },
       { text: '模型', link: '/models/' },
       { text: 'Agent', link: '/agents/' },
@@ -22,6 +23,29 @@ export default defineConfig({
       { text: '工具', link: '/tools/' }
     ],
     sidebar: {
+      '/cheatsheets/': [
+        { text: '个人速查', items: [
+          { text: '速查首页', link: '/cheatsheets/' }
+        ]},
+        { text: '数据库', items: [
+          { text: 'OceanBase SQL', link: '/cheatsheets/database/oceanbase-sql' },
+          { text: 'Greenplum 元数据与权限', link: '/cheatsheets/database/greenplum-metadata' },
+          { text: 'TiDB / MySQL 数据校验', link: '/cheatsheets/database/tidb-mysql-validation' }
+        ]},
+        { text: '大数据', items: [
+          { text: 'Kafka 运维', link: '/cheatsheets/bigdata/kafka-ops' }
+        ]},
+        { text: 'Linux 与自托管', items: [
+          { text: 'Linux / Shell', link: '/cheatsheets/system/linux-shell' },
+          { text: 'Docker / systemd 排障', link: '/cheatsheets/system/docker-systemd' }
+        ]},
+        { text: '开发', items: [
+          { text: 'Python / uv / FastAPI', link: '/cheatsheets/dev/python-uv-fastapi' }
+        ]},
+        { text: 'AI / Agent', items: [
+          { text: 'Coding Agent / MCP', link: '/cheatsheets/ai/coding-agent-mcp' }
+        ]}
+      ],
       '/learn/': [
         { text: 'LLM 基础', items: [
           { text: '学习路线', link: '/learn/' },
