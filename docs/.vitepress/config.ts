@@ -24,12 +24,32 @@ export default defineConfig({
     ],
     sidebar: {
       '/database/': [
-        { text: '数据库', items: [
-          { text: '数据库首页', link: '/database/' },
-          { text: 'OceanBase SQL', link: '/database/oceanbase' },
-          { text: 'Greenplum 元数据与权限', link: '/database/greenplum' },
-          { text: 'TiDB / MySQL 数据校验', link: '/database/tidb-mysql-validation' }
-        ]}
+        {
+          text: '数据库',
+          items: [
+            { text: '数据库首页', link: '/database/' },
+            { text: '国产化迁移总览', link: '/database/database-localization-comparison' }
+          ]
+        },
+        {
+          text: '国产数据库',
+          collapsed: false,
+          items: [
+            { text: 'OceanBase', link: '/database/oceanbase' },
+            { text: 'TiDB', link: '/database/tidb' },
+            { text: 'KingbaseES', link: '/database/kingbasees' },
+            { text: '达梦 DM8', link: '/database/dm8' },
+            { text: 'GaussDB', link: '/database/gaussdb' },
+            { text: 'openGauss', link: '/database/opengauss' }
+          ]
+        },
+        {
+          text: '速查与排障',
+          items: [
+            { text: 'Greenplum 元数据与权限', link: '/database/greenplum' },
+            { text: 'TiDB / MySQL 数据校验', link: '/database/tidb-mysql-validation' }
+          ]
+        }
       ],
       '/bigdata/': [
         { text: '大数据', items: [
