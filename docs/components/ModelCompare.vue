@@ -6,7 +6,12 @@ const leftId = ref(models[0].id)
 const rightId = ref(models[1].id)
 const left = computed(() => models.find(model => model.id === leftId.value)!)
 const right = computed(() => models.find(model => model.id === rightId.value)!)
-const rows = ['Reasoning', 'Coding', 'Vision', 'Tools']
+const rows = [
+  { key: 'Reasoning', label: '推理' },
+  { key: 'Coding', label: '编程' },
+  { key: 'Vision', label: '视觉' },
+  { key: 'Tools', label: '工具调用' }
+]
 
 const has = (model: typeof models[number], capability: string) => model.capabilities.includes(capability)
 </script>
@@ -14,10 +19,10 @@ const has = (model: typeof models[number], capability: string) => model.capabili
 <template>
   <div class="compare-wrap">
     <div class="compare-selects">
-      <select v-model="leftId">
+      <select v-model="leftId" aria-label="选择左侧模型">
         <option v-for="model in models" :key="model.id" :value="model.id">{{ model.provider }} · {{ model.name }}</option>
       </select>
-      <select v-model="rightId">
+      <select v-model="rightId" aria-label="选择右侧模型">
         <option v-for="model in models" :key="model.id" :value="model.id">{{ model.provider }} · {{ model.name }}</option>
       </select>
     </div>
@@ -27,14 +32,14 @@ const has = (model: typeof models[number], capability: string) => model.capabili
       <div class="compare-value">{{ right.provider }}</div>
     </div>
     <div class="compare-row">
-      <div class="compare-label">Context</div>
+      <div class="compare-label">上下文</div>
       <div class="compare-value">{{ left.context }}</div>
       <div class="compare-value">{{ right.context }}</div>
     </div>
-    <div v-for="row in rows" :key="row" class="compare-row">
-      <div class="compare-label">{{ row }}</div>
-      <div class="compare-value">{{ has(left, row) ? '✓' : '—' }}</div>
-      <div class="compare-value">{{ has(right, row) ? '✓' : '—' }}</div>
+    <div v-for="row in rows" :key="row.key" class="compare-row">
+      <div class="compare-label">{{ row.label }}</div>
+      <div class="compare-value">{{ has(left, row.key) ? '✓' : '—' }}</div>
+      <div class="compare-value">{{ has(right, row.key) ? '✓' : '—' }}</div>
     </div>
   </div>
 </template>
