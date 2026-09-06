@@ -1,4 +1,4 @@
-# LLM Wiki
+# Tech Wiki
 
 一个完全由 GitHub 维护、自动构建并发布到 GitHub Pages 的纯静态个人技术 Wiki。
 
@@ -27,14 +27,14 @@ npm run docs:build
 
 ## 内容结构
 
-- `docs/cheatsheets/`：个人高频技术速查，覆盖数据库、大数据、Linux、自托管、Python 和 Agent
-- `docs/learn/`：LLM 基础知识
-- `docs/models/`：模型资料与比较
-- `docs/agents/`：Agent / MCP
-- `docs/engineering/`：LLM Engineering
-- `docs/deploy/`：推理与本地部署
-- `docs/tools/`：工具生态
-- `docs/data/`：用于交互组件的静态结构化数据
+- `docs/database/`：数据库
+- `docs/bigdata/`：大数据
+- `docs/linux/`：Linux 运维
+- `docs/self-hosted/`：自托管服务
+- `docs/backend/`：后端开发
+- `docs/frontend/`：前端开发
+- `docs/ai-agent/`：AI / Agent
+- `docs/data/`：站点交互组件使用的静态结构化数据
 
 ## 内容原则
 
