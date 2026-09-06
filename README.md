@@ -2,6 +2,8 @@
 
 一个完全由 GitHub 维护、自动构建并发布到 GitHub Pages 的纯静态 LLM Wiki。
 
+预期站点地址：`https://zrain-x.github.io/llm-wiki/`
+
 ## 技术栈
 
 - VitePress
