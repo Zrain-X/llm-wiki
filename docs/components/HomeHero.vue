@@ -14,8 +14,8 @@ const entries = [
 
 <template>
   <section class="wiki-hero">
-    <span class="wiki-eyebrow">GitHub-native · 100% Static · Personal Wiki</span>
-    <h1>My technical knowledge base.</h1>
+    <span class="wiki-eyebrow">基于 GitHub · 纯静态 · 个人 Wiki</span>
+    <h1>我的个人技术知识库。</h1>
     <p>把日常开发、数据库、大数据、Linux、自托管和 AI / Agent 中反复使用的知识沉淀成可搜索、可复制、可持续维护的个人技术手册。</p>
     <div class="wiki-actions">
       <a class="wiki-button primary" :href="withBase('/database/')">开始查阅</a>

@@ -1,6 +1,7 @@
 import DefaultTheme from 'vitepress/theme'
 import type { Theme } from 'vitepress'
 import './custom.css'
+import './localization.css'
 import HomeHero from '../../components/HomeHero.vue'
 import ModelExplorer from '../../components/ModelExplorer.vue'
 import ModelCompare from '../../components/ModelCompare.vue'
