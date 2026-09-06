@@ -6,11 +6,19 @@ const query = ref('')
 const provider = ref('全部')
 const providers = ['全部', ...new Set(models.map(model => model.provider))]
 
+const capabilityLabels: Record<string, string> = {
+  Reasoning: '推理',
+  Coding: '编程',
+  Vision: '视觉',
+  Tools: '工具调用'
+}
+
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase()
   return models.filter(model => {
     const providerMatched = provider.value === '全部' || model.provider === provider.value
-    const haystack = [model.name, model.provider, ...model.capabilities].join(' ').toLowerCase()
+    const capabilityTexts = model.capabilities.flatMap(capability => [capability, capabilityLabels[capability] || capability])
+    const haystack = [model.name, model.provider, ...capabilityTexts].join(' ').toLowerCase()
     return providerMatched && (!q || haystack.includes(q))
   })
 })
@@ -18,9 +26,14 @@ const filtered = computed(() => {
 
 <template>
   <div class="explorer-tools">
-    <input v-model="query" class="explorer-search" placeholder="搜索模型、厂商或能力，例如 Coding..." />
+    <input
+      v-model="query"
+      class="explorer-search"
+      placeholder="搜索模型、厂商或能力，例如：编程"
+      aria-label="搜索模型、厂商或能力"
+    />
   </div>
-  <div class="explorer-tools">
+  <div class="explorer-tools" aria-label="按厂商筛选">
     <button
       v-for="item in providers"
       :key="item"
@@ -34,9 +47,11 @@ const filtered = computed(() => {
     <article v-for="model in filtered" :key="model.id" class="model-card">
       <div class="model-provider">{{ model.provider }}</div>
       <h3>{{ model.name }}</h3>
-      <div class="model-meta">{{ model.status }} · Context: {{ model.context }}</div>
+      <div class="model-meta">{{ model.status }} · 上下文：{{ model.context }}</div>
       <div class="badges">
-        <span v-for="capability in model.capabilities" :key="capability" class="badge">{{ capability }}</span>
+        <span v-for="capability in model.capabilities" :key="capability" class="badge">
+          {{ capabilityLabels[capability] || capability }}
+        </span>
       </div>
     </article>
   </div>
