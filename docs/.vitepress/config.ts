@@ -1,8 +1,8 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  title: 'LLM Wiki',
-  description: 'Understand, compare, build and deploy with large language models.',
+  title: 'Tech Wiki',
+  description: 'A personal technical knowledge base for daily engineering work.',
   lang: 'zh-CN',
   base: process.env.BASE_PATH || '/',
   cleanUrls: true,
@@ -12,70 +12,66 @@ export default defineConfig({
   ],
   themeConfig: {
     logo: '/logo.svg',
-    siteTitle: 'LLM Wiki',
+    siteTitle: 'Tech Wiki',
     nav: [
-      { text: '速查', link: '/cheatsheets/' },
-      { text: '学习', link: '/learn/' },
-      { text: '模型', link: '/models/' },
-      { text: 'Agent', link: '/agents/' },
-      { text: '工程', link: '/engineering/' },
-      { text: '部署', link: '/deploy/' },
-      { text: '工具', link: '/tools/' }
+      { text: '数据库', link: '/database/' },
+      { text: '大数据', link: '/bigdata/' },
+      { text: 'Linux 运维', link: '/linux/' },
+      { text: '自托管', link: '/self-hosted/' },
+      { text: '后端', link: '/backend/' },
+      { text: '前端', link: '/frontend/' },
+      { text: 'AI / Agent', link: '/ai-agent/' }
     ],
     sidebar: {
-      '/cheatsheets/': [
-        { text: '个人速查', items: [
-          { text: '速查首页', link: '/cheatsheets/' }
-        ]},
+      '/database/': [
         { text: '数据库', items: [
-          { text: 'OceanBase SQL', link: '/cheatsheets/database/oceanbase-sql' },
-          { text: 'Greenplum 元数据与权限', link: '/cheatsheets/database/greenplum-metadata' },
-          { text: 'TiDB / MySQL 数据校验', link: '/cheatsheets/database/tidb-mysql-validation' }
-        ]},
+          { text: '数据库首页', link: '/database/' },
+          { text: 'OceanBase SQL', link: '/database/oceanbase' },
+          { text: 'Greenplum 元数据与权限', link: '/database/greenplum' },
+          { text: 'TiDB / MySQL 数据校验', link: '/database/tidb-mysql-validation' }
+        ]}
+      ],
+      '/bigdata/': [
         { text: '大数据', items: [
-          { text: 'Kafka 运维', link: '/cheatsheets/bigdata/kafka-ops' }
-        ]},
-        { text: 'Linux 与自托管', items: [
-          { text: 'Linux / Shell', link: '/cheatsheets/system/linux-shell' },
-          { text: 'Docker / systemd 排障', link: '/cheatsheets/system/docker-systemd' }
-        ]},
-        { text: '开发', items: [
-          { text: 'Python / uv / FastAPI', link: '/cheatsheets/dev/python-uv-fastapi' }
-        ]},
+          { text: '大数据首页', link: '/bigdata/' },
+          { text: 'Kafka 运维', link: '/bigdata/kafka' }
+        ]}
+      ],
+      '/linux/': [
+        { text: 'Linux 运维', items: [
+          { text: 'Linux 运维首页', link: '/linux/' },
+          { text: 'Linux / Shell 速查', link: '/linux/shell' }
+        ]}
+      ],
+      '/self-hosted/': [
+        { text: '自托管服务', items: [
+          { text: '自托管首页', link: '/self-hosted/' },
+          { text: 'Docker / systemd 排障', link: '/self-hosted/docker-systemd' },
+          { text: 'Ollama', link: '/self-hosted/ollama' }
+        ]}
+      ],
+      '/backend/': [
+        { text: '后端开发', items: [
+          { text: '后端首页', link: '/backend/' },
+          { text: 'Python / uv / FastAPI', link: '/backend/python-uv-fastapi' }
+        ]}
+      ],
+      '/frontend/': [
+        { text: '前端开发', items: [
+          { text: '前端首页', link: '/frontend/' },
+          { text: 'Vue 3 / Vite / TypeScript', link: '/frontend/vue-vite-typescript' }
+        ]}
+      ],
+      '/ai-agent/': [
         { text: 'AI / Agent', items: [
-          { text: 'Coding Agent / MCP', link: '/cheatsheets/ai/coding-agent-mcp' }
+          { text: 'AI / Agent 首页', link: '/ai-agent/' },
+          { text: 'LLM 基础速查', link: '/ai-agent/llm-basics' },
+          { text: '模型中心', link: '/ai-agent/models' },
+          { text: '模型比较', link: '/ai-agent/compare' },
+          { text: 'Coding Agent / MCP', link: '/ai-agent/coding-agent-mcp' },
+          { text: 'RAG', link: '/ai-agent/rag' }
         ]}
-      ],
-      '/learn/': [
-        { text: 'LLM 基础', items: [
-          { text: '学习路线', link: '/learn/' },
-          { text: 'Token', link: '/learn/token' },
-          { text: 'Context Window', link: '/learn/context-window' }
-        ]}
-      ],
-      '/models/': [
-        { text: '模型', items: [
-          { text: '模型中心', link: '/models/' },
-          { text: '模型比较', link: '/models/compare' },
-          { text: '数据规范', link: '/models/schema' }
-        ]}
-      ],
-      '/agents/': [{ text: 'Agent', items: [
-        { text: 'Agent 概览', link: '/agents/' },
-        { text: 'MCP', link: '/agents/mcp' }
-      ]}],
-      '/engineering/': [{ text: 'LLM Engineering', items: [
-        { text: '工程概览', link: '/engineering/' },
-        { text: 'RAG', link: '/engineering/rag' }
-      ]}],
-      '/deploy/': [{ text: '部署', items: [
-        { text: '部署概览', link: '/deploy/' },
-        { text: 'Ollama', link: '/deploy/ollama' }
-      ]}],
-      '/tools/': [{ text: '工具', items: [
-        { text: '工具生态', link: '/tools/' },
-        { text: 'Coding Agent', link: '/tools/coding-agent' }
-      ]}]
+      ]
     },
     search: { provider: 'local' },
     socialLinks: [
@@ -83,7 +79,7 @@ export default defineConfig({
     ],
     footer: {
       message: 'Built with VitePress · Maintained on GitHub',
-      copyright: 'LLM Wiki'
+      copyright: 'Personal Tech Wiki'
     }
   }
 })
