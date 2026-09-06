@@ -1,0 +1,50 @@
+[
+  {
+    "id": "openai-gpt",
+    "name": "GPT Series",
+    "provider": "OpenAI",
+    "status": "持续更新",
+    "context": "待官方核验",
+    "capabilities": ["Reasoning", "Coding", "Vision", "Tools"]
+  },
+  {
+    "id": "anthropic-claude",
+    "name": "Claude Series",
+    "provider": "Anthropic",
+    "status": "持续更新",
+    "context": "待官方核验",
+    "capabilities": ["Reasoning", "Coding", "Vision", "Tools"]
+  },
+  {
+    "id": "google-gemini",
+    "name": "Gemini Series",
+    "provider": "Google",
+    "status": "持续更新",
+    "context": "待官方核验",
+    "capabilities": ["Reasoning", "Coding", "Vision", "Tools"]
+  },
+  {
+    "id": "deepseek",
+    "name": "DeepSeek Series",
+    "provider": "DeepSeek",
+    "status": "持续更新",
+    "context": "待官方核验",
+    "capabilities": ["Reasoning", "Coding"]
+  },
+  {
+    "id": "qwen",
+    "name": "Qwen Series",
+    "provider": "Alibaba",
+    "status": "持续更新",
+    "context": "待官方核验",
+    "capabilities": ["Reasoning", "Coding", "Vision"]
+  },
+  {
+    "id": "glm",
+    "name": "GLM Series",
+    "provider": "Zhipu AI",
+    "status": "持续更新",
+    "context": "待官方核验",
+    "capabilities": ["Reasoning", "Coding", "Tools"]
+  }
+]
