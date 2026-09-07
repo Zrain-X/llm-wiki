@@ -64,7 +64,13 @@ const categoryData: Record<CategoryKey, Category> = {
       { title: 'SSH：远程登录、密钥与跳板机', desc: '从加密通道、主机身份和用户认证三层理解 SSH，并覆盖密钥、ProxyJump、端口转发与常见故障。', link: '/linux/ssh', tag: 'SSH' },
       { title: 'Shell 管道、重定向与退出码', desc: '理解 stdin/stdout/stderr、管道、tee、退出码与 pipefail，掌握 Linux 命令能够组合起来的根本机制。', link: '/linux/shell-pipeline-redirection', tag: 'Shell' },
       { title: 'sed：面向文本流的编辑器', desc: '从 stream editor 的工作模型理解替换、地址范围、正则、原地修改和批量配置变更，而不是死记语法。', link: '/linux/sed', tag: '文本处理' },
-      { title: 'grep、find 与 xargs：Linux 批处理三件套', desc: '围绕“找对象、找内容、交给下一步”理解文件检索、批量执行、NUL 分隔和安全修改流程。', link: '/linux/grep-find-xargs', tag: 'Shell 批处理' }
+      { title: 'grep、find 与 xargs：Linux 批处理三件套', desc: '围绕“找对象、找内容、交给下一步”理解文件检索、批量执行、NUL 分隔和安全修改流程。', link: '/linux/grep-find-xargs', tag: 'Shell 批处理' },
+      { title: 'awk：记录与字段的流式处理语言', desc: '从记录、字段、Pattern/Action、数组与聚合出发，掌握日志分析、字段计算和跨行统计。', link: '/linux/awk', tag: '文本处理' },
+      { title: 'Linux 压缩与归档', desc: '区分 tar 归档与 gzip、xz、zstd 压缩层，掌握打包、解包、排除、路径与备份安全。', link: '/linux/archive-compression', tag: '归档压缩' },
+      { title: 'Linux 软件包管理', desc: '理解 apt/dpkg 与 dnf/rpm 的分层关系，以及仓库、依赖、版本、签名和安装状态排查。', link: '/linux/package-management', tag: '包管理' },
+      { title: '/proc 与 sysctl', desc: '从 /proc 观察内核与进程运行状态，并通过 sysctl 理解临时调参与持久化配置。', link: '/linux/proc-sysctl', tag: '内核' },
+      { title: 'Linux 定时任务', desc: '对比 cron 与 systemd Timer，处理环境差异、日志、重叠执行、补跑和生产调度设计。', link: '/linux/scheduled-tasks', tag: '定时任务' },
+      { title: 'Linux 用户、用户组与 sudo', desc: '从 UID/GID、主组与附加组、sudoers 和服务身份理解 Linux 授权边界与权限排查。', link: '/linux/users-groups-sudo', tag: '用户权限' }
     ]
   },
   'self-hosted': {
