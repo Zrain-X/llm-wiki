@@ -8,6 +8,7 @@
 - [模型中心](./models)
 - [模型比较](./compare)
 - [Coding Agent / MCP](./coding-agent-mcp)
+- [DevSpace：连接 ChatGPT 与家用虚拟机](./devspace-home-vm)
 - [RAG](./rag)
 
-模型数据、工具生态、本地推理和 Agent 框架以后都继续放在这一主题下，不再占用一级导航。
+模型数据、工具生态、本地推理、Agent 框架和 MCP 实战以后都继续放在这一主题下，不再占用一级导航。
