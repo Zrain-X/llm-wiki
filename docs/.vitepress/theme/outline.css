@@ -1,0 +1,66 @@
+/* Article outline density and long-title handling. */
+
+/* Give the desktop outline a little more breathing room without stealing too
+ * much width from the article body. VitePress only shows the aside from 1280px. */
+@media (min-width: 1280px) {
+  .VPDoc:not(.has-sidebar) .aside {
+    max-width: 19rem;
+  }
+
+  .VPDoc:not(.has-sidebar) .aside-container,
+  .VPDoc:not(.has-sidebar) .aside-curtain {
+    width: 17rem;
+  }
+}
+
+/* H2 entries are the persistent navigation skeleton. Let them wrap to two
+ * lines instead of forcing every heading into a single ellipsized row. */
+.VPDocAsideOutline .VPDocOutlineItem.root > li > .outline-link {
+  display: -webkit-box;
+  padding: 5px 7px;
+  line-height: 1.5;
+  white-space: normal !important;
+  overflow: hidden !important;
+  text-overflow: clip !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* H3 entries stay compact while scanning. The active entry expands so the
+ * current subsection is always readable in full. */
+.VPDocAsideOutline .VPDocOutlineItem.nested {
+  margin: 2px 0 6px 7px;
+  padding: 0 0 0 9px;
+  border-left: 1px solid var(--wiki-line);
+}
+
+.VPDocAsideOutline .VPDocOutlineItem.nested .outline-link {
+  margin: 1px 0;
+  padding: 4px 7px;
+  line-height: 1.5;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.VPDocAsideOutline .VPDocOutlineItem.nested .outline-link.active {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* Progressive enhancement: collapse H3 groups everywhere except the H2 that
+ * owns the currently active H2/H3 anchor. Browsers without :has() keep the
+ * normal VitePress fully-expanded outline instead of losing navigation. */
+@supports selector(li:has(> a)) {
+  .VPDocAsideOutline .VPDocOutlineItem.root > li > .VPDocOutlineItem.nested {
+    display: none;
+  }
+
+  .VPDocAsideOutline .VPDocOutlineItem.root > li:has(> .outline-link.active) > .VPDocOutlineItem.nested,
+  .VPDocAsideOutline .VPDocOutlineItem.root > li:has(> .VPDocOutlineItem.nested .outline-link.active) > .VPDocOutlineItem.nested {
+    display: block;
+  }
+}
