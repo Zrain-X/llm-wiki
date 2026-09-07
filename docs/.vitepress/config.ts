@@ -99,6 +99,7 @@ export default defineConfig({
           { text: '模型中心', link: '/ai-agent/models' },
           { text: '模型比较', link: '/ai-agent/compare' },
           { text: 'Coding Agent / MCP', link: '/ai-agent/coding-agent-mcp' },
+          { text: 'DevSpace：连接 ChatGPT 与家用虚拟机', link: '/ai-agent/devspace-home-vm' },
           { text: 'RAG', link: '/ai-agent/rag' }
         ]}
       ]
