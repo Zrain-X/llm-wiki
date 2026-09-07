@@ -1,0 +1,309 @@
+/* Interaction and layout polish layered on top of custom.css. */
+
+/* --------------------------------------------------------------------------
+ * Top navigation
+ *
+ * Active state and hover state deliberately use different visual languages:
+ * - active: brand text + short underline
+ * - hover: compact frosted pill
+ * This prevents adjacent items from visually merging into one large block.
+ * -------------------------------------------------------------------------- */
+.VPNavBarMenu {
+  align-items: center;
+  gap: 4px;
+}
+
+.VPNavBarMenuLink {
+  position: relative;
+  height: 36px;
+  margin: 0 1px;
+  padding: 0 10px !important;
+  border-radius: 10px;
+  line-height: 36px !important;
+  background: transparent !important;
+  font-weight: 580;
+  transition:
+    color .16s ease,
+    background-color .16s ease,
+    box-shadow .16s ease,
+    transform .16s ease;
+}
+
+.VPNavBarMenuLink.active {
+  color: var(--vp-c-brand-1) !important;
+  background: transparent !important;
+  font-weight: 700;
+}
+
+.VPNavBarMenuLink.active::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 1px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--vp-c-brand-1), var(--vp-c-brand-2));
+  box-shadow: 0 2px 7px rgba(79, 114, 255, .25);
+}
+
+.VPNavBarMenuLink:hover:not(.active) {
+  color: var(--vp-c-brand-1) !important;
+  background: rgba(79, 114, 255, .085) !important;
+  box-shadow: inset 0 0 0 1px rgba(79, 114, 255, .08);
+  transform: translateY(-1px);
+}
+
+.VPNavBarMenuLink.active:hover {
+  background: rgba(79, 114, 255, .045) !important;
+}
+
+.dark .VPNavBarMenuLink:hover:not(.active) {
+  background: rgba(116, 137, 255, .11) !important;
+  box-shadow: inset 0 0 0 1px rgba(142, 159, 255, .10);
+}
+
+/* Keep controls visually separated from the category navigation. */
+.VPNavBarAppearance,
+.VPNavBarSocialLinks {
+  margin-left: 4px;
+}
+
+.VPNavBarAppearance .VPSwitch,
+.VPNavBarSocialLinks .VPSocialLink {
+  transition: background-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.VPNavBarAppearance .VPSwitch:hover,
+.VPNavBarSocialLinks .VPSocialLink:hover {
+  background: rgba(79, 114, 255, .07);
+  box-shadow: inset 0 0 0 1px rgba(79, 114, 255, .08);
+  transform: translateY(-1px);
+}
+
+/* At medium desktop widths the seven top-level categories should remain tidy. */
+@media (min-width: 768px) and (max-width: 1180px) {
+  .VPNavBarMenu { gap: 1px; }
+  .VPNavBarMenuLink {
+    padding-inline: 7px !important;
+    font-size: 13px !important;
+  }
+
+  .VPNavBarMenuLink.active::after {
+    left: 7px;
+    right: 7px;
+  }
+
+  .VPNavBarSearch .DocSearch-Button {
+    width: 40px !important;
+    min-width: 40px !important;
+    padding: 0 !important;
+    justify-content: center;
+  }
+
+  .VPNavBarSearch .DocSearch-Button-Placeholder,
+  .VPNavBarSearch .DocSearch-Button-Keys {
+    display: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Home and category interactions
+ * -------------------------------------------------------------------------- */
+.wiki-button,
+.wiki-stat-card,
+.wiki-recent-row,
+.wiki-article-row {
+  outline: none;
+}
+
+.wiki-button:hover {
+  transform: translateY(-1px);
+}
+
+.wiki-button.primary:hover {
+  box-shadow: 0 13px 30px rgba(79, 114, 255, .30);
+}
+
+.wiki-button.secondary:hover {
+  border-color: rgba(79, 114, 255, .20);
+  background: rgba(255, 255, 255, .72);
+}
+
+.dark .wiki-button.secondary:hover {
+  background: rgba(255, 255, 255, .09);
+}
+
+/* Avoid horizontal jitter while scanning a long article list. */
+.wiki-article-row:hover {
+  transform: none !important;
+  background: rgba(255, 255, 255, .52);
+  box-shadow: inset 3px 0 0 rgba(79, 114, 255, .72);
+}
+
+.dark .wiki-article-row:hover {
+  background: rgba(255, 255, 255, .045);
+}
+
+.wiki-recent-row:hover {
+  background: rgba(255, 255, 255, .50);
+  box-shadow: inset 3px 0 0 rgba(79, 114, 255, .52);
+}
+
+.dark .wiki-recent-row:hover {
+  background: rgba(255, 255, 255, .045);
+}
+
+.wiki-article-row:hover .wiki-article-copy h3,
+.wiki-recent-row:hover .wiki-recent-copy h3 {
+  color: var(--vp-c-brand-1);
+}
+
+.wiki-read-more {
+  transition: color .16s ease, transform .16s ease;
+}
+
+.wiki-article-row:hover .wiki-read-more {
+  color: var(--vp-c-brand-1);
+}
+
+/* --------------------------------------------------------------------------
+ * Article reading experience and outline
+ * -------------------------------------------------------------------------- */
+.VPDocAsideOutline .outline-link {
+  margin: 2px 0;
+  border-radius: 8px;
+  transition: color .16s ease, background-color .16s ease, box-shadow .16s ease;
+}
+
+.VPDocAsideOutline .outline-link:hover {
+  color: var(--vp-c-brand-1);
+  background: rgba(79, 114, 255, .055);
+}
+
+.VPDocAsideOutline .outline-link.active {
+  color: var(--vp-c-brand-1);
+  background: var(--vp-c-brand-soft);
+  box-shadow: inset 2px 0 0 var(--vp-c-brand-1);
+}
+
+/* The built-in marker duplicates the glass-pill active state, so keep one cue. */
+.VPDocAsideOutline .outline-marker {
+  opacity: 0 !important;
+}
+
+/* Previous / next article navigation should look like part of the glass system. */
+.VPDocFooter .prev-next {
+  gap: 10px;
+  border-top: 0 !important;
+  padding-top: 26px !important;
+}
+
+.VPDocFooter .pager-link {
+  border: 1px solid rgba(255, 255, 255, .70) !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, .42);
+  box-shadow: 0 9px 26px rgba(70, 91, 148, .06);
+  transition: border-color .16s ease, background-color .16s ease, transform .16s ease;
+}
+
+.VPDocFooter .pager-link:hover {
+  border-color: rgba(79, 114, 255, .24) !important;
+  background: rgba(255, 255, 255, .68);
+  transform: translateY(-1px);
+}
+
+.dark .VPDocFooter .pager-link {
+  border-color: var(--wiki-line) !important;
+  background: rgba(255, 255, 255, .035);
+}
+
+.dark .VPDocFooter .pager-link:hover {
+  background: rgba(255, 255, 255, .065);
+}
+
+/* Mobile/tablet in-page outline bar should not introduce an opaque strip. */
+.VPLocalNav {
+  border-bottom-color: var(--wiki-line) !important;
+  background: rgba(255, 255, 255, .68) !important;
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+.dark .VPLocalNav {
+  background: rgba(17, 24, 39, .76) !important;
+}
+
+/* Search button receives a clearer hover affordance. */
+.VPNavBarSearch .DocSearch-Button,
+.VPNavBarSearch button {
+  transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+}
+
+.VPNavBarSearch .DocSearch-Button:hover,
+.VPNavBarSearch button:hover {
+  border-color: rgba(79, 114, 255, .22) !important;
+  background: var(--wiki-glass-strong) !important;
+  box-shadow: 0 8px 22px rgba(70, 91, 148, .07);
+}
+
+/* --------------------------------------------------------------------------
+ * Footer and mobile navigation
+ * -------------------------------------------------------------------------- */
+.VPFooter {
+  border-top: 1px solid var(--wiki-line) !important;
+  background: rgba(255, 255, 255, .42) !important;
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+}
+
+.dark .VPFooter {
+  background: rgba(17, 24, 39, .52) !important;
+}
+
+.VPNavScreen {
+  background: rgba(247, 249, 255, .92) !important;
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+}
+
+.dark .VPNavScreen {
+  background: rgba(15, 23, 42, .94) !important;
+}
+
+.VPNavScreenMenuLink {
+  border-radius: 10px;
+  transition: color .16s ease, background-color .16s ease;
+}
+
+.VPNavScreenMenuLink:hover,
+.VPNavScreenMenuLink.active {
+  color: var(--vp-c-brand-1) !important;
+  background: var(--vp-c-brand-soft);
+}
+
+/* --------------------------------------------------------------------------
+ * Keyboard accessibility and motion preferences
+ * -------------------------------------------------------------------------- */
+.VPNavBarMenuLink:focus-visible,
+.wiki-button:focus-visible,
+.wiki-stat-card:focus-visible,
+.wiki-recent-row:focus-visible,
+.wiki-article-row:focus-visible,
+.VPDocAsideOutline .outline-link:focus-visible,
+.VPDocFooter .pager-link:focus-visible {
+  outline: 2px solid rgba(79, 114, 255, .68) !important;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .VPNavBarMenuLink,
+  .wiki-button,
+  .wiki-stat-card,
+  .wiki-recent-row,
+  .wiki-article-row,
+  .VPDocFooter .pager-link {
+    transition: none !important;
+    transform: none !important;
+  }
+}
