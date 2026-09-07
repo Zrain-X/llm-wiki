@@ -50,7 +50,15 @@ const categoryData: Record<CategoryKey, Category> = {
     title: 'Linux 运维',
     desc: 'Shell、网络、进程、磁盘、日志、systemd 与日常问题定位。',
     articles: [
-      { title: 'Linux / Shell 速查', desc: '日常文件、进程、网络、文本处理与批量操作中高频使用的 Linux / Shell 命令。', link: '/linux/shell', tag: 'Shell' }
+      { title: 'Linux 运维速查', desc: '从服务、资源、磁盘、端口、DNS、网络和文本处理等常见现象快速进入对应排障路径。', link: '/linux/shell', tag: '速查入口' },
+      { title: 'systemd：Linux 服务的生命周期管理', desc: '理解 systemd 为什么存在、Unit 与依赖关系、服务创建、日志、自动重启、override 和 Timer。', link: '/linux/systemd', tag: 'systemd' },
+      { title: 'CPU、内存、负载与进程排查', desc: '理解 load average、available、RSS、I/O wait、OOM 与 cgroup，建立资源问题的判断顺序。', link: '/linux/process-resource', tag: '资源排障' },
+      { title: '磁盘、文件系统与空间排查', desc: '从块设备、挂载点、容量、inode 到 df/du 不一致和 deleted-open 文件，系统定位磁盘满问题。', link: '/linux/disk-filesystem', tag: '磁盘' },
+      { title: '端口、Socket 与进程定位', desc: '理解监听地址、TCP 状态、ss/lsof、端口冲突，以及 Docker/containerd 场景下如何追到真正服务。', link: '/linux/ports-processes', tag: '端口' },
+      { title: 'DNS 解析链路与缓存排障', desc: '从 NSS、hosts、systemd-resolved、resolv.conf 到上游 DNS，解释为什么 dig 正常应用仍可能解析异常。', link: '/linux/dns-troubleshooting', tag: 'DNS' },
+      { title: 'Linux 网络连通性排障', desc: '沿接口、路由、DNS、TCP、TLS、HTTP 分层检查 timeout、refused、reset 和 IPv4/IPv6 问题。', link: '/linux/network-troubleshooting', tag: '网络' },
+      { title: 'sed：面向文本流的编辑器', desc: '从 stream editor 的工作模型理解替换、地址范围、正则、原地修改和批量配置变更，而不是死记语法。', link: '/linux/sed', tag: '文本处理' },
+      { title: 'grep、find 与 xargs：Linux 批处理三件套', desc: '围绕“找对象、找内容、交给下一步”理解文件检索、批量执行、NUL 分隔和安全修改流程。', link: '/linux/grep-find-xargs', tag: 'Shell 批处理' }
     ]
   },
   'self-hosted': {
