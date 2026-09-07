@@ -1,87 +1,309 @@
-# 使用 DevSpace 打通 ChatGPT 与家用虚拟机
+# DevSpace：让 ChatGPT 安全操作家用开发环境
 
-DevSpace 是一个自托管 MCP Server，可以把 ChatGPT 与自己控制的开发环境连接起来。它适合部署在家用虚拟机、开发机或专用服务器上，让 ChatGPT 在明确授权的工作区中读取文件、修改代码、执行测试和构建命令，而不需要把整个项目手工上传到对话中。
+DevSpace 是一个自托管 MCP Server，用来把 ChatGPT 或其他 MCP Client 接入自己控制的开发环境。它把“打开项目、读取与修改文件、执行 Shell、查看差异、使用工作区和 worktree”等能力封装为 MCP Tools，使远程 Agent 可以在明确授权的目录中直接完成开发任务。
 
-本文以 **Linux 家用虚拟机 + DevSpace + Cloudflare Tunnel + ChatGPT** 为主线，给出一套从零开始、可以实际落地的配置流程。
+本文不是单纯的安装记录，而是围绕 **DevSpace 的定位、架构、权限边界、配置方式、部署模型和实际工作流** 进行整理，并给出一套适合家用虚拟机长期运行的参考实现。
 
 > [!IMPORTANT]
-> DevSpace 本质上是在向远程 AI 客户端开放本机开发能力。尤其是 Shell 工具会以 DevSpace 运行用户的系统权限执行命令，因此不要把 DevSpace 当成普通的只读文件共享服务。推荐使用专用虚拟机或专用低权限 Linux 用户运行，并严格控制这个用户能够访问的目录和系统资源。
+> 一句话理解：**DevSpace = Workspace 管理 + 文件操作 + Shell 执行 + MCP 接口。**
+>
+> 它不是远程桌面，不负责创建公网隧道，也不能把本机 Shell 自动变成安全沙箱。
 
-## 适用场景
+## 1. DevSpace 解决什么问题
 
-这套方案适合以下需求：
+普通 ChatGPT 会话天然看不到家里虚拟机上的完整项目。传统做法通常是手工上传文件、复制代码片段，或者另外通过 SSH / IDE 操作主机。
 
-- 在手机、平板或任意浏览器中的 ChatGPT 直接操作家里的开发项目。
-- 让 ChatGPT 阅读完整代码仓库，而不是逐个上传文件。
-- 让 ChatGPT 修改代码、执行测试、构建项目和查看 Git 差异。
-- 远程维护自托管服务的配置仓库、脚本和文档。
-- 在项目已经安装 Playwright 等工具时，让 Agent 启动前端、执行浏览器测试或辅助做视觉检查。
-- 使用 `AGENTS.md`、`CLAUDE.md` 或 Agent Skills 给 ChatGPT 补充项目级操作规范。
-- 使用 Git worktree 为不同会话创建隔离的代码工作区。
-
-不建议直接把 DevSpace 部署到存放大量私人文件、SSH 私钥、密码库或生产凭据的日常主机账户中。
-
-## 整体架构
-
-典型连接链路如下：
+DevSpace 解决的是中间这一层：
 
 ```text
-┌──────────────────────┐
-│       ChatGPT        │
-│  Web / App / Agent   │
-└──────────┬───────────┘
-           │ HTTPS + MCP
-           ▼
-┌──────────────────────┐
-│  公网 HTTPS 接入层   │
-│ Cloudflare Tunnel 等 │
-└──────────┬───────────┘
-           │ http://127.0.0.1:7676
-           ▼
-┌──────────────────────┐
-│       DevSpace       │
-│ MCP / OAuth / Tools  │
-└──────────┬───────────┘
-           │ 本机权限
-           ▼
-┌──────────────────────┐
-│      家用虚拟机      │
-│ /srv/devspace/...    │
-│ Git / Node / Python  │
-│ Docker / Playwright  │
-└──────────────────────┘
+ChatGPT
+   │
+   │ MCP Tool Calls
+   ▼
+DevSpace
+   │
+   ├─ 打开 Workspace
+   ├─ 读取 / 修改文件
+   ├─ 执行 Shell
+   ├─ 查看 Git 差异
+   ├─ 管理 Worktree
+   └─ 发现 Skills / Agent 配置
+   │
+   ▼
+本地开发环境
 ```
 
-核心思路是：
+因此它特别适合：
 
-1. DevSpace 只监听虚拟机本地地址，例如 `127.0.0.1:7676`。
-2. Cloudflare Tunnel 等隧道从虚拟机主动连接公网，因此家庭网络通常不需要端口映射。
-3. ChatGPT 连接公开的 HTTPS MCP 地址，例如 `https://devspace.example.com/mcp`。
-4. DevSpace 使用 OAuth 和 Owner Password 对客户端授权。
-5. ChatGPT 通过 DevSpace MCP Tools 打开允许的项目目录并执行操作。
+- 让 ChatGPT 直接阅读完整代码仓库，而不是反复上传文件。
+- 修改代码后直接运行测试、构建、Lint 和 Git 命令。
+- 在手机或其他不具备完整 IDE 的设备上继续处理家中项目。
+- 维护自托管服务的配置、脚本和基础设施仓库。
+- 为不同 Agent 会话创建独立 Git worktree，减少相互干扰。
+- 配合 Playwright 等浏览器自动化工具形成“视觉分析 → 修改 → 再验证”的闭环。
+- 通过 `AGENTS.md`、Agent Skills 和项目规则，让 Agent 理解项目自己的操作规范。
 
-## DevSpace 能做什么
+不适合把它理解成：
 
-连接完成后，DevSpace 可以向 ChatGPT 提供类似 Coding Agent 的本地操作能力，包括：
+- NAS 文件共享。
+- 完整远程桌面。
+- SSH 的安全替代品。
+- 容器或虚拟机级别的安全沙箱。
 
-- 打开指定工作区。
-- 读取文件。
-- 创建、覆盖或精确修改文件。
-- 搜索代码和目录。
-- 执行测试、构建、Git、包管理器等 Shell 命令。
-- 查看修改差异。
-- 使用 Git worktree 隔离不同任务。
-- 读取项目中的 Agent 说明文件和 Skills。
+## 2. 整体架构与组件职责
 
-DevSpace 不等于完整的远程桌面。它主要解决的是“让模型安全、结构化地访问项目文件与开发工具”这个问题。
+家用虚拟机的推荐链路如下：
 
-## 部署前准备
+```text
+┌────────────────────────┐
+│        ChatGPT         │
+│   MCP Client / Agent   │
+└───────────┬────────────┘
+            │ HTTPS + OAuth + MCP
+            ▼
+┌────────────────────────┐
+│      公网接入层        │
+│ Tunnel / HTTPS Proxy   │
+└───────────┬────────────┘
+            │ http://127.0.0.1:7676
+            ▼
+┌────────────────────────┐
+│        DevSpace        │
+│ Workspace / Tools / UI │
+└───────────┬────────────┘
+            │ 本机用户权限
+            ▼
+┌────────────────────────┐
+│      专用 Linux VM     │
+│ Git / Node / Python    │
+│ Docker / Playwright... │
+└────────────────────────┘
+```
 
-下面以 Debian / Ubuntu 类 Linux 虚拟机为例。
+各组件职责要分清：
 
-### 1. 建议准备专用 Linux 用户
+| 组件 | 负责什么 | 不负责什么 |
+| --- | --- | --- |
+| ChatGPT | 理解任务、调用 MCP Tools、分析结果 | 不直接挂载本地目录 |
+| DevSpace | Workspace、文件、Shell、差异、Skills 等本机开发能力 | 不创建公网 Tunnel，不提供完整主机沙箱 |
+| Tunnel / HTTPS Proxy | 给 ChatGPT 提供可访问的公网 HTTPS Origin | 不决定 DevSpace 能访问哪些文件 |
+| Linux 用户 / VM / Container | 真正的操作系统权限和隔离边界 | 不理解 MCP Workspace 语义 |
+| Git worktree | 为不同任务隔离代码 Checkout | 不是安全边界 |
+| Playwright | 浏览器访问、DOM、截图、交互验证 | 不代替 DevSpace 的文件与 Shell 能力 |
 
-不要直接用 `root` 运行 DevSpace。可以创建一个专用用户：
+这里最重要的设计原则是：**公网接入、MCP 权限和操作系统权限是三层不同的问题，不应该混为一谈。**
+
+## 3. DevSpace 的核心概念
+
+### Workspace
+
+DevSpace 不是让 Agent 任意浏览整台机器，而是先通过 `open_workspace` 打开一个项目目录，随后文件操作围绕这个 Workspace 进行。
+
+典型流程：
+
+```text
+允许根目录
+/srv/devspace/workspace
+        │
+        ├─ project-a
+        ├─ project-b
+        └─ llm-wiki
+             │
+             ▼
+      open_workspace
+             │
+             ▼
+        Workspace ID
+             │
+       ┌─────┴─────┐
+       ▼           ▼
+     read       edit / shell
+```
+
+### Allowed Roots
+
+`workspaces.allowedRoots` 定义 MCP Workspace 可以从哪些根目录打开项目。
+
+推荐：
+
+```jsonc
+"allowedRoots": [
+  "/srv/devspace/workspace"
+]
+```
+
+不建议为了省事配置为：
+
+```text
+/
+/home
+~
+```
+
+Allowed Roots 越窄，越容易判断 ChatGPT 可以通过 DevSpace 文件工具接触哪些项目。
+
+> [!WARNING]
+> `allowedRoots` 是 **DevSpace 文件 / Workspace 层面的边界**，不是 Shell 沙箱。Shell 命令最终能访问什么，仍取决于运行 DevSpace 的 Linux 用户权限。
+
+### Tool Mode
+
+当前 DevSpace 的 `tools.mode` 主要有两种工具面：
+
+| 模式 | 主要工具 |
+| --- | --- |
+| `codex` | `open_workspace`、`read`、`apply_patch`、`exec_command`、`write_stdin`、`show_changes` |
+| `claude` | `open_workspace`、`read`、`write`、`edit`、`bash`、`show_changes` |
+
+这两种模式主要是为了适配不同 Coding Agent 的工具调用习惯，并不代表两套不同的权限模型。
+
+### Worktree
+
+DevSpace 可以把 Git worktree 用作任务级工作区隔离。
+
+它适合解决：
+
+```text
+主 Checkout 正在运行
+        │
+        ├─ 会话 A → worktree A
+        ├─ 会话 B → worktree B
+        └─ 人工修改 → 主 Checkout
+```
+
+这样可以减少多个 Agent 或人工操作同时修改同一工作区带来的冲突。
+
+但需要注意：**worktree 是工作流隔离，不是安全隔离。**
+
+### Skills 与 Subagents
+
+DevSpace 可以发现标准 Agent Skills，并支持配置可调用的子 Agent Provider。
+
+Skills 适合固化：
+
+- 项目启动方式。
+- 测试命令。
+- 构建与发布规范。
+- 数据库迁移要求。
+- 前端视觉检查流程。
+- 修改前后必须执行的验证步骤。
+
+对于长期维护的项目，与其每次在聊天中重复说明，不如把规则沉淀在项目自身的 `AGENTS.md`、`.agents/skills` 或 DevSpace Skills 中。
+
+## 4. 最重要的安全模型
+
+DevSpace 暴露的是远程开发能力，因此应当按“远程访问开发机”而不是“普通 Web 服务”来设计。
+
+### 两层权限边界
+
+最容易误解的是 `allowedRoots` 与 Shell 的关系：
+
+```text
+MCP 文件操作
+    │
+    ▼
+Workspace / Allowed Roots
+    │
+    └─ 控制 DevSpace 文件工具可以打开哪些项目
+
+Shell 命令
+    │
+    ▼
+Linux User / Container / VM
+    │
+    └─ 决定命令在操作系统中真正能做什么
+```
+
+因此：
+
+```text
+真正的主机安全边界
+=
+Linux User / Container / VM
+```
+
+而不是：
+
+```text
+allowedRoots
+```
+
+### 推荐安全基线
+
+| 风险 | 实际控制点 | 建议 |
+| --- | --- | --- |
+| Workspace 打开过宽 | `allowedRoots` | 只允许专用项目目录 |
+| Shell 越权 | Linux 用户 | 使用独立低权限用户，不给免密 sudo |
+| 私钥 / 密码泄露 | 文件系统权限 | 不让 DevSpace 用户读取私人 `~/.ssh`、密码库等 |
+| 生产 Secret 暴露 | Workspace / env | 开发环境与生产凭据分离 |
+| MCP 公网暴露 | OAuth + Tunnel | DevSpace 仅监听 `127.0.0.1` |
+| Host Header 攻击 | `allowedHosts` / `publicBaseUrl` | 不随意设置 `*` |
+| Shell 日志泄密 | `logging.shellCommands` | 默认关闭完整 Shell 命令记录 |
+| 主 Checkout 被破坏 | Git worktree | 高风险任务使用独立 worktree |
+
+### Owner Password 与认证文件
+
+初始化后认证信息保存在：
+
+```text
+~/.devspace/auth.json
+```
+
+Owner Password 只应该在你主动批准 MCP Client 时使用。
+
+不要把以下内容放入 Wiki、Git、Issue、截图或聊天正文：
+
+- Owner Password。
+- `auth.json` 内容。
+- OAuth Token。
+- Tunnel Token。
+- Cloudflare API Token。
+- SSH 私钥。
+- Linux 密码。
+
+建议至少限制认证文件权限：
+
+```bash
+chmod 700 ~/.devspace
+chmod 600 ~/.devspace/auth.json
+```
+
+## 5. 部署模式怎么选
+
+DevSpace 本身不负责创建公网隧道。ChatGPT 要访问家中 DevSpace 时，需要额外提供一个公网 HTTPS Origin。
+
+常见方式：
+
+| 接入方式 | 特点 | 适合场景 |
+| --- | --- | --- |
+| Cloudflare Tunnel | 无需家庭端口映射，配置成熟 | 家庭宽带长期运行，推荐 |
+| Tailscale Funnel | 与 Tailscale 体系结合方便 | 已大量使用 Tailscale |
+| ngrok / Pinggy | 上手快 | 临时验证 |
+| 自建 HTTPS Reverse Proxy | 自由度最高 | 已有公网入口和证书体系 |
+| 直接暴露 7676 | 风险高 | 不推荐 |
+
+本文采用的长期部署模型是：
+
+```text
+ChatGPT
+   │
+Cloudflare Tunnel
+   │
+127.0.0.1:7676
+   │
+DevSpace
+   │
+专用 Linux 用户
+   │
+/srv/devspace/workspace
+```
+
+Cloudflare Tunnel 只是其中一种接入方式，不是 DevSpace 的必要组成部分。
+
+## 6. 家用虚拟机参考部署
+
+以下示例以 Debian / Ubuntu 类 Linux 为例。
+
+### 创建专用用户与工作区
 
 ```bash
 sudo useradd --create-home --shell /bin/bash devspace
@@ -89,32 +311,28 @@ sudo mkdir -p /srv/devspace/workspace
 sudo chown -R devspace:devspace /srv/devspace
 ```
 
-后续需要让 ChatGPT 操作的项目，可以放到：
+推荐的项目组织方式：
 
 ```text
-/srv/devspace/workspace
+/srv/devspace/workspace/
+├── project-a/
+├── project-b/
+├── llm-wiki/
+└── infra/
 ```
 
-例如：
+如果已有项目位于其他目录，也可以授权已有路径，但应先确认 `devspace` 用户的真实文件权限。
 
-```text
-/srv/devspace/workspace/project-a
-/srv/devspace/workspace/project-b
-/srv/devspace/workspace/wiki
-```
+### 基础依赖
 
-如果已有项目目录，也可以直接授权已有路径，但要确保 `devspace` 用户确实拥有完成任务所需的读写权限。
-
-### 2. 检查基础依赖
-
-DevSpace 当前需要：
+当前 DevSpace 要求：
 
 - Node.js `>=22.19 <27`
 - npm
 - Git
 - Bash
 
-检查版本：
+检查：
 
 ```bash
 node -v
@@ -123,147 +341,49 @@ git --version
 bash --version
 ```
 
-建议使用 Node.js 22 LTS 或满足 DevSpace 当前要求的更新版本。
+### 安装与初始化
 
-> [!TIP]
-> 如果系统仓库中的 Node.js 版本过旧，可以先通过 Node.js 官方推荐方式、NodeSource、nvm 等方式升级。长期使用 systemd 服务时，系统级 Node.js 安装通常比只存在于交互式 Shell 中的 nvm 环境更省事。
+官方文档可以直接使用：
 
-## 安装 DevSpace
+```bash
+npx @waishnav/devspace init
+```
 
-安装 CLI：
+如果准备长期作为 systemd 服务运行，也可以安装全局 CLI：
 
 ```bash
 sudo npm install -g @waishnav/devspace
 ```
 
-确认安装：
-
-```bash
-devspace --help
-```
-
-然后切换到专用用户：
+然后使用专用用户初始化：
 
 ```bash
 sudo -iu devspace
-```
-
-## 初始化 DevSpace
-
-运行：
-
-```bash
 devspace init
 ```
 
-初始化过程会逐项询问配置。
+初始化 ChatGPT 场景时重点关注三个值：
 
-### 使用模式
+1. 允许打开的 Project Roots。
+2. 公网 `publicBaseUrl`。
+3. Owner Password。
 
-如果主要目标是让 ChatGPT 操作家用虚拟机，选择包含 **ChatGPT** 的模式。
+## 7. 关键配置速查
 
-如果同时还要让本地 Coding Agent 使用 DevSpace，可以选择同时启用 ChatGPT 和 Coding Agents。
-
-### Allowed Roots
-
-这里填写 ChatGPT 可以通过 DevSpace 打开的根目录。
-
-推荐：
-
-```text
-/srv/devspace/workspace
-```
-
-也可以配置多个较窄的根目录，例如：
-
-```text
-/srv/devspace/projects,/srv/devspace/docs
-```
-
-不要为了省事设置为：
-
-```text
-/
-/home
-~
-```
-
-Allowed Roots 越窄，越容易控制风险和理解 Agent 实际可以访问哪些项目。
-
-### DevSpace 监听地址
-
-默认本地 MCP 服务通常为：
-
-```text
-http://127.0.0.1:7676/mcp
-```
-
-对于“Cloudflare Tunnel 和 DevSpace 在同一台虚拟机”的部署方式，建议继续绑定 `127.0.0.1`，不要直接把 7676 端口暴露到局域网或公网。
-
-### Public Base URL
-
-初始化时需要填写一个公网 HTTPS Origin，例如：
-
-```text
-https://devspace.example.com
-```
-
-这里 **不要添加 `/mcp`**。
-
-正确：
-
-```text
-https://devspace.example.com
-```
-
-错误：
-
-```text
-https://devspace.example.com/mcp
-```
-
-稍后在 ChatGPT 中配置 MCP Endpoint 时才使用：
-
-```text
-https://devspace.example.com/mcp
-```
-
-### Owner Password
-
-初始化会生成 Owner Password，并保存到 DevSpace 的认证配置中。
-
-这个密码只应该在实际授权自己的 ChatGPT 客户端时使用。
-
-本文档、Git 仓库、Shell 历史、截图、Issue 和聊天记录中都不应该出现真实 Owner Password。
-
-不要把以下文件内容提交到代码仓库：
-
-```text
-~/.devspace/auth.json
-```
-
-## 检查 DevSpace 配置
-
-默认配置文件位置通常为：
+默认持久配置与认证文件分开保存：
 
 ```text
 ~/.devspace/config.jsonc
 ~/.devspace/auth.json
 ```
 
-可以执行：
-
-```bash
-devspace doctor
-```
-
-它会检查 Node、Git、Bash、公开 URL、工作区和本地依赖等状态。
-
-一个经过脱敏的配置结构大致如下：
+一个适合家用虚拟机的脱敏示例：
 
 ```jsonc
 {
+  "$schema": "https://raw.githubusercontent.com/Waishnav/devspace/main/schema/v1/devspace.schema.json",
   "configVersion": 1,
+
   "server": {
     "host": "127.0.0.1",
     "port": 7676,
@@ -271,147 +391,166 @@ devspace doctor
     "allowedHosts": [],
     "trustProxy": false
   },
+
   "workspaces": {
     "allowedRoots": [
       "/srv/devspace/workspace"
     ],
     "worktreeRoot": "~/.devspace/worktrees"
   },
+
   "tools": {
     "mode": "codex"
   },
+
+  "ui": {
+    "enabled": true
+  },
+
+  "artifacts": {
+    "enabled": false,
+    "maxFileBytes": 104857600
+  },
+
+  "skills": {
+    "enabled": true,
+    "paths": [],
+    "agentDir": "~/.codex"
+  },
+
   "logging": {
     "level": "info",
+    "format": "json",
     "requests": true,
+    "assets": false,
     "toolCalls": true,
     "shellCommands": false
   }
 }
 ```
 
-这只是结构示例，不要直接覆盖初始化生成的配置，也不要把认证文件混入 Wiki。
+关键字段：
 
-## 首次启动 DevSpace
+| 配置 | 作用 | 家用环境建议 |
+| --- | --- | --- |
+| `server.host` | 本地监听地址 | `127.0.0.1` |
+| `server.port` | DevSpace HTTP/MCP 端口 | 默认 `7676` |
+| `server.publicBaseUrl` | OAuth 与 MCP discovery 使用的公网 Origin | 只写 Origin，不加 `/mcp` |
+| `server.allowedHosts` | Host Header 白名单 | 保持严格，不使用 `*` 做长期配置 |
+| `server.trustProxy` | 是否信任代理头 | 仅在明确理解代理链时开启 |
+| `workspaces.allowedRoots` | MCP 可打开的项目根目录 | 显式配置窄范围目录 |
+| `workspaces.worktreeRoot` | DevSpace 管理的 worktree 位置 | 与主项目目录分开 |
+| `tools.mode` | MCP 工具调用风格 | ChatGPT / Codex 场景通常使用 `codex` |
+| `ui.enabled` | 是否附加 Apps UI 元数据 | 一般保持开启 |
+| `skills.enabled` | 是否发现 Agent Skills | 长期项目建议开启 |
+| `logging.shellCommands` | 是否记录 Shell 命令预览 | 有 Secret 风险时保持 `false` |
 
-运行：
+> [!NOTE]
+> 官方配置中空的 `workspaces.allowedRoots` 会使用当前工作目录。长期服务不建议依赖这种隐式行为，最好明确写出允许的根目录。
+
+修改公网地址时可以使用：
 
 ```bash
-devspace serve
+devspace config set publicBaseUrl https://devspace.example.com
 ```
 
-另开一个终端检查本地服务：
+完整检查：
 
 ```bash
-curl -sS -o /dev/null -w '%{http_code}\\n' http://127.0.0.1:7676/
+devspace doctor
 ```
 
-如果本地服务已经正常响应，再继续配置公网隧道。
+## 8. 公网接入与 ChatGPT 连接
 
-## 使用 Cloudflare Tunnel 暴露 MCP 服务
+### URL 的两个概念不要混淆
 
-DevSpace 本身不会创建公网隧道。对于家庭宽带、动态公网 IP、CGNAT 或不希望做路由器端口映射的环境，Cloudflare Tunnel 是比较方便的选择。
+这是最常见的配置错误之一。
 
-下面给出两种方式。任选一种即可。
+DevSpace 配置：
 
-### 方式 A：Cloudflare Dashboard 创建 Tunnel
+```text
+server.publicBaseUrl
+=
+https://devspace.example.com
+```
 
-这是日常使用更省事的方式。
+ChatGPT MCP Endpoint：
 
-1. 登录 Cloudflare Dashboard。
-2. 进入 Networking / Tunnels。
-3. 创建一个新的 Cloudflare Tunnel。
-4. 选择虚拟机对应的 Linux 平台。
-5. Cloudflare 会给出一条安装并注册 Connector 的命令。
-6. 在家用虚拟机上执行 Dashboard 给出的命令。
-7. 为 Tunnel 添加一个 Public Hostname，例如 `devspace.example.com`。
-8. Origin Service 配置为：
+```text
+https://devspace.example.com/mcp
+```
+
+也就是：
+
+| 配置位置 | 正确示例 |
+| --- | --- |
+| DevSpace `publicBaseUrl` | `https://devspace.example.com` |
+| ChatGPT MCP URL | `https://devspace.example.com/mcp` |
+
+`publicBaseUrl` 是 Origin，所以不能带 `/mcp`。
+
+### Tunnel 必须转发整个 DevSpace HTTP 服务
+
+Tunnel / Reverse Proxy 应该指向：
 
 ```text
 http://127.0.0.1:7676
 ```
 
-Dashboard 给出的 Connector 命令通常包含 Tunnel Token。这个 Token 属于凭据，不要复制到 Wiki、Git、截图或聊天记录中。
+不要只把公网 `/mcp` 路径映射到本地服务，因为 DevSpace 除了 MCP Endpoint 之外，还需要 OAuth discovery 和授权相关路由。
 
-### 方式 B：使用 cloudflared CLI 创建本地管理的 Tunnel
+### Cloudflare Tunnel 的最小配置
 
-先安装 `cloudflared`。Debian / Ubuntu 可以按照 Cloudflare 官方 APT 仓库方式安装。
+如果使用 Dashboard 创建 Tunnel，只需要保证：
 
-安装完成后确认：
+```text
+Public Hostname
+devspace.example.com
+
+Origin Service
+http://127.0.0.1:7676
+```
+
+不需要把 Cloudflare Tunnel 的完整安装过程复制进这篇 DevSpace Wiki；Tunnel 本身应作为独立的基础设施主题维护。
+
+### Tailscale Funnel
+
+官方文档也支持把整个本地服务暴露给 Funnel：
 
 ```bash
-cloudflared --version
+tailscale funnel --bg 7676
 ```
 
-登录：
+同样不要只挂载 `/mcp` 子路径。
 
-```bash
-cloudflared tunnel login
+### 让 ChatGPT 自动知道项目根目录
+
+`allowedRoots` 只解决“服务端允许访问哪里”，并不会天然保证 ChatGPT 每个新会话都知道项目放在哪里。
+
+如果 ChatGPT 的插件 / MCP 配置支持描述信息，建议加入非敏感的工作区说明，例如：
+
+```text
+该 DevSpace 连接到专用开发虚拟机。
+允许的项目根目录为 /srv/devspace/workspace。
+操作项目时先使用 open_workspace 打开对应目录，
+再使用读取、编辑和命令工具完成任务。
 ```
 
-创建 Tunnel：
+这可以显著减少新会话反复询问“项目目录在哪里”的情况。
 
-```bash
-cloudflared tunnel create chatgpt-devspace
-```
+但需要再次强调：**插件描述只是给模型看的上下文，不是权限控制。**
 
-查看 Tunnel：
+## 9. 作为 systemd 服务长期运行
 
-```bash
-cloudflared tunnel list
-```
+手工运行 `devspace serve` 适合测试，长期使用建议交给 systemd。
 
-然后创建 `~/.cloudflared/config.yml`。下面所有 UUID 和路径都必须替换成自己的实际值：
-
-```yaml
-tunnel: <TUNNEL-UUID>
-credentials-file: /home/<USER>/.cloudflared/<TUNNEL-UUID>.json
-
-ingress:
-  - hostname: devspace.example.com
-    service: http://127.0.0.1:7676
-  - service: http_status:404
-```
-
-创建 DNS 路由：
-
-```bash
-cloudflared tunnel route dns chatgpt-devspace devspace.example.com
-```
-
-先前台验证：
-
-```bash
-cloudflared tunnel run chatgpt-devspace
-```
-
-确认公网域名可以访问后，再配置为系统服务。
-
-> [!WARNING]
-> `<TUNNEL-UUID>.json`、Tunnel Token、Cloudflare API Token 都属于凭据。它们不应该出现在 Wiki 或代码仓库中。
-
-## 将 DevSpace 配置为 systemd 服务
-
-手工执行 `devspace serve` 只适合验证。长期运行建议交给 systemd。
-
-先确认 DevSpace 的绝对路径：
+先确认 CLI 路径：
 
 ```bash
 command -v devspace
 ```
 
-假设输出为：
-
-```text
-/usr/local/bin/devspace
-```
-
-创建：
-
-```text
-/etc/systemd/system/devspace.service
-```
-
-内容示例：
+示例服务：
 
 ```ini
 [Unit]
@@ -435,358 +574,189 @@ PrivateTmp=true
 WantedBy=multi-user.target
 ```
 
-如果 `command -v devspace` 输出的路径不同，需要同步修改 `ExecStart`。
-
-加载并启动：
+启用：
 
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable --now devspace
 ```
 
-检查状态：
-
-```bash
-sudo systemctl status devspace
-```
-
-查看日志：
-
-```bash
-journalctl -u devspace -f
-```
-
-> [!NOTE]
-> `NoNewPrivileges=true` 可以减少服务启动新提权程序的能力，但它不能把 Shell 工具变成沙箱。DevSpace 执行 Shell 命令时，仍然拥有 `devspace` Linux 用户本身拥有的权限。
-
-## 将 Cloudflare Tunnel 配置为服务
-
-如果使用 Dashboard 创建的 remotely-managed Tunnel，按照 Cloudflare 提供的 Connector 服务安装命令即可。
-
-如果使用本地 `config.yml`，可以使用：
-
-```bash
-sudo cloudflared --config /home/<USER>/.cloudflared/config.yml service install
-```
-
-然后：
-
-```bash
-sudo systemctl enable --now cloudflared
-sudo systemctl status cloudflared
-```
-
-此时理想状态应该是两个服务都开机自启：
-
-```bash
-systemctl is-active devspace
-systemctl is-active cloudflared
-```
-
-都应该返回：
-
-```text
-active
-```
-
-## 在 ChatGPT 中连接 DevSpace
-
-ChatGPT 中相关入口可能随着版本和账号类型变化而显示为 **Plugins、Apps、自定义 MCP 应用或 Developer Mode**，但连接参数本身是一致的。
-
-### 1. 创建或导入 MCP 连接
-
-在 ChatGPT 的插件 / Apps / 自定义 MCP 配置入口中新建连接。
-
-MCP Server URL 填写：
-
-```text
-https://devspace.example.com/mcp
-```
-
-注意这里和 DevSpace `publicBaseUrl` 不同：
-
-| 配置位置 | 示例 |
-| --- | --- |
-| DevSpace `publicBaseUrl` | `https://devspace.example.com` |
-| ChatGPT MCP Server URL | `https://devspace.example.com/mcp` |
-
-### 2. 完成 OAuth / Owner Password 授权
-
-ChatGPT 第一次连接时，DevSpace 会进入授权流程并显示 Owner Password Approval 页面。
-
-此时从虚拟机本地安全地获取初始化生成的 Owner Password，并只在授权页面中输入。
-
-不要把 Owner Password 发到 ChatGPT 对话正文中。
-
-### 3. 扫描并确认 Tools
-
-连接完成后，确认 ChatGPT 可以看到 DevSpace 提供的工具，例如：
-
-- `open_workspace`
-- `read`
-- 文件编辑工具
-- Shell / Command 工具
-- `show_changes`
-
-具体工具名称会随 DevSpace `tools.mode` 和版本略有变化。
-
-## 让 ChatGPT 更自然地定位工作目录
-
-仅仅在 DevSpace 中配置 `allowedRoots`，解决的是服务端“允许访问哪些目录”的问题；它不一定能让 ChatGPT 在每个新会话里自动知道你的项目都放在哪里。
-
-如果使用的 ChatGPT 插件 / MCP 配置支持填写描述，建议在描述中明确写出**非敏感的工作区路径和使用方式**。
-
-例如：
-
-```text
-该 DevSpace 服务连接到一台专用开发虚拟机。
-允许的项目根目录为 /srv/devspace/workspace。
-需要操作项目时，应先使用 open_workspace 打开该目录下对应项目，
-再使用 read / edit / command 等工具完成操作。
-不要尝试访问工作区之外的私人目录。
-```
-
-这样做有两个好处：
-
-1. ChatGPT 在会话开始时就知道项目根目录，不需要反复询问“可操作目录在哪里”。
-2. `open_workspace` 可以更自然地直接定位到具体项目。
-
-需要注意：插件描述只是给模型看的操作提示，**不是安全边界**。真正的访问控制仍然由 DevSpace 配置和 Linux 用户权限决定。
-
-插件描述中不要写入：
-
-- Owner Password
-- OAuth Token
-- Tunnel Token
-- API Key
-- SSH 密钥
-- Linux 密码
-- Cloudflare 凭据
-
-## 第一次端到端验证
-
-连接完成后，不要立刻让 ChatGPT 修改重要项目。建议按下面顺序验证。
-
-### 1. 验证工作区打开
-
-在 ChatGPT 中请求：
-
-```text
-使用 DevSpace 打开 /srv/devspace/workspace 下的测试项目，并告诉我项目根目录。
-```
-
-预期：ChatGPT 调用 `open_workspace` 并返回一个 Workspace ID。
-
-### 2. 验证只读能力
-
-请求：
-
-```text
-读取 README.md，概括这个项目的用途，不要修改任何文件。
-```
-
-### 3. 验证 Shell
-
-请求：
-
-```text
-运行 git status，并告诉我当前工作区是否存在未提交修改。
-```
-
-### 4. 验证写入
-
-在专门准备的测试项目中请求：
-
-```text
-创建一个 DEVSPACE_TEST.md，只写一行 DevSpace connection test，然后展示修改差异。
-```
-
-确认文件已经真实写入虚拟机。
-
-### 5. 验证构建或测试
-
-根据项目类型请求：
-
-```text
-运行现有测试，但不要自动修改失败的代码。
-```
-
-或者：
-
-```text
-运行项目的 build 命令并解释结果。
-```
-
-只有这五步都正常，再开始把 DevSpace 用于真实项目。
-
-## 前端视觉分析场景
-
-DevSpace 本身负责“把 ChatGPT 接入本地项目与 Shell”，它并不替代浏览器自动化工具。
-
-如果虚拟机中的项目已经安装 Playwright，可以形成下面的工作流：
-
-```text
-ChatGPT
-  ↓
-DevSpace open_workspace
-  ↓
-读取前端源码
-  ↓
-启动开发服务器
-  ↓
-Playwright 打开页面 / 截图 / 检查 DOM
-  ↓
-ChatGPT 分析视觉问题
-  ↓
-修改代码
-  ↓
-再次运行 Playwright 验证
-```
-
-这特别适合：
-
-- 检查布局、间距、溢出和响应式问题。
-- 对比修改前后的页面效果。
-- 检查 Console Error 和网络请求。
-- 自动验证交互流程。
-- 把“视觉分析 → 修改 → 再验证”做成 Agent 闭环。
-
-为了让 Agent 稳定执行这类流程，可以在项目的 `AGENTS.md` 或 Skill 中补充：
-
-- 如何启动开发服务器。
-- 默认监听地址和端口。
-- Playwright 测试入口。
-- 页面视觉检查规则。
-- 修改前后都需要截图或执行验证的要求。
-
-## 安全边界
-
-这是整套方案最重要的部分。
-
-### Allowed Roots 不是完整 Shell 沙箱
-
-DevSpace 的文件工具会限制在允许的 Workspace 中，但 Shell 命令是本机命令。
-
-Shell 最终能做什么，取决于运行 DevSpace 的 Linux 用户本身能做什么。
-
-因此建议：
-
-- 使用独立 `devspace` 用户。
-- 不给该用户配置免密 `sudo`。
-- 不把个人 `~/.ssh`、密码库、浏览器数据目录等交给该用户。
-- 不把 `/`、整个 `/home` 之类的目录配置为 Allowed Roots。
-- 生产环境密钥与 DevSpace 工作区分离。
-- 能用测试环境解决的问题，不让 Agent 直接连生产环境。
-
-### 不直接暴露 7676 端口
-
-推荐：
-
-```text
-DevSpace -> 127.0.0.1:7676
-Cloudflare Tunnel -> 127.0.0.1:7676
-```
-
-而不是：
-
-```text
-DevSpace -> 0.0.0.0:7676 -> 路由器端口映射 -> Internet
-```
-
-### 保管 Owner Password
-
-认证文件：
-
-```text
-~/.devspace/auth.json
-```
-
-建议权限至少保持为当前用户私有：
-
-```bash
-chmod 700 ~/.devspace
-chmod 600 ~/.devspace/auth.json
-```
-
-不要把这个文件加入任何 Git 仓库。
-
-### 谨慎记录 Shell 命令日志
-
-如果 Shell 命令可能出现数据库密码、Token、带签名 URL 等内容，不建议开启完整 Shell 命令日志。
-
-即使 Agent 本身没有主动泄露密钥，过度详细的命令日志也可能形成新的泄露面。
-
-## 常见问题
-
-### ChatGPT 能连接，但打不开项目
-
-首先检查 `workspaces.allowedRoots`。
-
-然后确认请求的项目路径确实位于某个 Allowed Root 下面。
-
-再检查 Linux 文件权限：
-
-```bash
-namei -l /srv/devspace/workspace/example-project
-```
-
-DevSpace 用户需要能够遍历父目录并访问项目本身。
-
-### 每次都要告诉 ChatGPT 项目根目录
-
-在 DevSpace 配置 `allowedRoots` 之外，再把非敏感的根目录信息写入插件 / MCP 连接描述。
-
-这会显著改善新会话中的自动定位能力。
-
-### 本地 7676 正常，但公网 `/mcp` 不通
-
-按顺序检查：
+检查：
 
 ```bash
 systemctl status devspace
-systemctl status cloudflared
+journalctl -u devspace -f
 ```
 
-然后检查 Tunnel 是否指向：
+`NoNewPrivileges=true` 可以减少部分提权路径，但不会改变 DevSpace Shell 继承 Linux 用户权限这一事实。
+
+## 10. 推荐的日常工作流
+
+DevSpace 真正好用的地方不是“能打开文件”，而是把一次完整开发任务串起来。
+
+推荐流程：
+
+```text
+1. open_workspace
+        ↓
+2. 读取 README / AGENTS.md / Skills
+        ↓
+3. git status，确认初始状态
+        ↓
+4. 分析代码与问题
+        ↓
+5. 修改文件
+        ↓
+6. 运行 test / lint / build
+        ↓
+7. show_changes / git diff
+        ↓
+8. 人工确认或提交
+```
+
+对于重要项目，再增加一层：
+
+```text
+新任务
+  ↓
+创建独立 worktree
+  ↓
+Agent 修改与验证
+  ↓
+Review Diff
+  ↓
+Merge / Cherry-pick
+```
+
+这样 DevSpace 才从“远程文件工具”真正变成一个可重复的 Agent 工作环境。
+
+## 11. Playwright 与前端视觉分析
+
+DevSpace 负责项目文件和 Shell；Playwright 负责浏览器。
+
+两者组合后的职责链路是：
+
+```text
+ChatGPT
+   │
+   ├─ DevSpace：读取源码
+   ├─ DevSpace：启动 Dev Server
+   │
+   ├─ Playwright：打开页面
+   ├─ Playwright：检查 DOM / Console / Screenshot
+   │
+   ├─ ChatGPT：分析视觉问题
+   │
+   ├─ DevSpace：修改源码
+   │
+   └─ Playwright：重新验证
+```
+
+如果 Playwright 已安装在项目中，DevSpace 的 Shell 可以直接运行项目已有的 Playwright CLI / Test 命令。
+
+如果另外部署独立的 Playwright MCP，则它与 DevSpace 是两个互补工具：
+
+```text
+DevSpace MCP
+→ Filesystem / Shell / Git
+
+Playwright MCP
+→ Browser / DOM / Screenshot / Interaction
+```
+
+前端视觉闭环中特别需要注意网络位置：**浏览器运行在哪里，开发服务器就必须从那里可达。**
+
+例如 Playwright 与项目都运行在同一台 VM 时，通常可以直接访问：
+
+```text
+http://127.0.0.1:<DEV_PORT>
+```
+
+如果浏览器运行在另一台主机或云环境，则需要另外解决 Dev Server 的网络可达性，不能把 DevSpace 的 MCP Tunnel 当成前端页面代理。
+
+项目的 `AGENTS.md` / Skill 中建议明确写出：
+
+- Dev Server 启动命令。
+- 默认监听地址和端口。
+- Playwright 测试入口。
+- 需要检查的页面路径。
+- 视觉检查标准。
+- 修改后必须执行的回归验证。
+
+## 12. DevSpace 与常见方案的定位区别
+
+| 方案 | 文件操作 | Shell | Browser | Workspace | MCP | 主要定位 |
+| --- | --- | --- | --- | --- | --- | --- |
+| DevSpace | ✓ | ✓ | 间接 | ✓ | ✓ | 远程 Coding Workspace |
+| Filesystem MCP | ✓ | × | × | 基础 | ✓ | 文件读写 |
+| Playwright MCP | × | × | ✓ | × | ✓ | 浏览器自动化 |
+| SSH | ✓ | ✓ | × | × | × | 主机远程管理 |
+| 本地 Coding Agent | ✓ | ✓ | 可扩展 | 本地项目 | 不一定 | 本机自动编程 |
+
+因此 DevSpace 最有价值的场景不是替代 SSH，而是：
+
+> **把本地 Coding Agent 常见的“文件 + Shell + 项目上下文”能力，以结构化 MCP 的方式安全地提供给 ChatGPT。**
+
+## 13. 故障诊断
+
+遇到问题时，不要从 ChatGPT 一端盲目重连，可以按链路逐层排查。
+
+```text
+ChatGPT 无法使用 DevSpace
+│
+├─ 1. 公网地址不可达
+│    ├─ Tunnel 是否在线
+│    ├─ DNS 是否正确
+│    └─ Origin 是否指向 127.0.0.1:7676
+│
+├─ 2. OAuth / MCP 连接失败
+│    ├─ publicBaseUrl 是否只包含 Origin
+│    ├─ ChatGPT URL 是否包含 /mcp
+│    ├─ 是否错误地只代理 /mcp
+│    └─ Host Header / allowedHosts 是否匹配
+│
+├─ 3. 能连接但打不开项目
+│    ├─ allowedRoots 是否包含目标项目
+│    └─ Linux 用户是否有目录遍历与读写权限
+│
+├─ 4. 能读文件但 Shell 失败
+│    ├─ Bash / Git / Node 是否存在
+│    ├─ systemd PATH 是否和交互 Shell 不同
+│    └─ devspace 用户是否拥有执行权限
+│
+└─ 5. 工具缺失或行为异常
+     ├─ tools.mode 是否正确
+     ├─ MCP Client 是否重新扫描工具
+     ├─ DevSpace 版本是否变化
+     └─ devspace doctor 是否报告异常
+```
+
+### 本地先验证 DevSpace
+
+```bash
+devspace doctor
+systemctl status devspace
+```
+
+### 再验证公网入口
+
+Tunnel 应指向：
 
 ```text
 http://127.0.0.1:7676
 ```
 
-再检查 `publicBaseUrl` 是否和实际公网 Origin 完全一致。
+### 项目权限问题
 
-### OAuth 能打开，但认证后失败
-
-重点检查：
-
-- `publicBaseUrl` 是否只包含 Origin，没有 `/mcp`。
-- ChatGPT 中 MCP URL 是否包含 `/mcp`。
-- 公网域名是否被额外反向代理改写路径。
-- Host Header 是否和 DevSpace 预期一致。
-- Tunnel 是否把整个 DevSpace HTTP 服务转发过去，而不是只把 `/mcp` 路径挂载到本地。
-
-DevSpace 除了 `/mcp` 之外还需要暴露 OAuth discovery 和授权相关路由，因此只转发单独的 `/mcp` 路径容易导致认证异常。
-
-### ChatGPT 看不到写入或 Shell 工具
-
-可能原因包括：
-
-- DevSpace 当前 `tools.mode` 与预期不同。
-- ChatGPT 当前账号或工作区对完整 MCP / 写入动作有限制。
-- 自定义 MCP 应用没有完成工具扫描或没有重新连接。
-- DevSpace 或 ChatGPT 侧版本发生变化。
-
-先执行：
+可以检查完整目录权限链：
 
 ```bash
-devspace doctor
+namei -l /srv/devspace/workspace/example-project
 ```
 
-再重新启动 DevSpace，并在 ChatGPT 侧重新扫描或重新连接 MCP。
+### 更新后行为异常
 
-### 更新 DevSpace 后行为发生变化
-
-查看当前安装版本：
+查看版本：
 
 ```bash
 npm list -g @waishnav/devspace --depth=0
@@ -798,76 +768,64 @@ npm list -g @waishnav/devspace --depth=0
 sudo npm install -g @waishnav/devspace@latest
 ```
 
-升级后建议依次执行：
+升级后不要直接认为环境正常，至少重新执行：
 
 ```bash
 devspace doctor
 sudo systemctl restart devspace
-sudo systemctl status devspace
 ```
 
-然后重新做一次“打开工作区 → 读取 → Shell → 写入 → 构建”的快速验证。
+然后完成一次最小回归：
 
-对于长期使用环境，不建议在无人验证的情况下自动升级 DevSpace。
+```text
+open_workspace
+→ read
+→ shell
+→ write / patch
+→ test / build
+→ show_changes
+```
 
-## 推荐的日常使用方式
+## 14. 部署验收标准
 
-一个稳定的日常工作流可以是：
+完成下面这些验证，才算真正部署完成：
 
-1. 家用虚拟机开机。
-2. `devspace.service` 自动启动。
-3. `cloudflared.service` 自动启动。
-4. ChatGPT 保持 DevSpace 插件 / MCP App 已连接状态。
-5. 新任务开始时，ChatGPT 根据插件描述知道允许的项目根目录。
-6. 先 `open_workspace`，再进行读取、分析和修改。
-7. 修改后运行测试、构建或 Playwright 验证。
-8. 最后查看 Git diff，再决定是否提交。
-
-对于重要仓库，可以要求 Agent 默认使用 worktree，避免直接修改正在使用的 Checkout。
-
-## 部署完成检查表
-
-完成以下检查后，才认为整套链路配置完成：
-
-- [ ] Node.js 版本满足 DevSpace 要求。
-- [ ] DevSpace 不以 root 运行。
-- [ ] Allowed Roots 只包含真正需要操作的项目目录。
-- [ ] `devspace doctor` 无关键错误。
+- [ ] DevSpace 使用独立低权限 Linux 用户运行。
+- [ ] `allowedRoots` 只包含需要给 Agent 使用的目录。
 - [ ] DevSpace 只监听 `127.0.0.1`。
-- [ ] Cloudflare Tunnel 正确转发到 `127.0.0.1:7676`。
-- [ ] `publicBaseUrl` 不包含 `/mcp`。
-- [ ] ChatGPT MCP URL 包含 `/mcp`。
-- [ ] Owner Password 没有进入 Wiki、Git 或聊天正文。
-- [ ] `auth.json` 权限已收紧且未被 Git 跟踪。
-- [ ] ChatGPT 可以成功 `open_workspace`。
-- [ ] 文件读取正常。
-- [ ] Shell 测试正常。
-- [ ] 测试项目写入正常。
-- [ ] 构建 / 测试命令正常。
-- [ ] 插件描述中已经写明非敏感的允许根目录。
-- [ ] systemd 服务可以在虚拟机重启后自动恢复。
+- [ ] 公网 HTTPS 接入正常，没有直接暴露 7676。
+- [ ] `publicBaseUrl` 是 Origin，不包含 `/mcp`。
+- [ ] ChatGPT MCP Endpoint 包含 `/mcp`。
+- [ ] Owner Password 和 `auth.json` 没有进入 Git / Wiki / 聊天记录。
+- [ ] `open_workspace` 能正确打开目标项目。
+- [ ] 文件读取与修改正常。
+- [ ] Shell 可以执行 Git、测试和构建命令。
+- [ ] 修改后可以查看差异。
+- [ ] 插件描述中已经提供非敏感的项目根目录信息。
+- [ ] systemd 可以在 VM 重启后自动恢复服务。
+- [ ] 高风险项目已经明确是否使用 worktree。
 
-## 进一步强化
+## 15. 长期维护建议
 
-如果后续要把这套能力长期用于家庭实验室或更多自动化任务，可以继续增加：
+这套环境稳定运行后，可以继续强化：
 
-- 为 DevSpace 单独创建 LXC / VM，进一步隔离家庭主机。
-- 使用只包含代码与配置副本的工作区，不直接挂载私人目录。
-- 为高风险项目默认使用 Git worktree。
-- 使用 `AGENTS.md` 固化项目规则。
-- 使用 Agent Skills 固化测试、部署和视觉检查流程。
-- 为 DevSpace 和 Tunnel 增加健康检查与告警。
-- 定期检查全局 npm 包版本和 DevSpace Release Notes。
-- 对重要仓库增加自动备份和 Git 远端同步。
+- DevSpace 独占一个 VM / LXC，进一步缩小主机权限边界。
+- Agent Workspace 只存代码与测试配置，不直接挂载私人数据目录。
+- 为重要仓库默认启用 worktree 工作流。
+- 用 `AGENTS.md` 和 Skills 固化项目操作规则。
+- 将 Cloudflare Tunnel、Tailscale 等网络接入单独沉淀为基础设施 Wiki，避免本文膨胀。
+- 为 DevSpace / Tunnel 增加健康检查和告警。
+- 升级 DevSpace 后固定执行最小 MCP 回归测试。
+- 定期审查 `allowedRoots`、Linux 用户权限和历史遗留 Secret。
 
 ## 参考资料
 
 - DevSpace：<https://github.com/Waishnav/devspace>
-- DevSpace Setup Guide：<https://github.com/Waishnav/devspace/blob/main/docs/setup.md>
-- DevSpace Configuration Reference：<https://github.com/Waishnav/devspace/blob/main/docs/configuration.md>
-- DevSpace Security Model：<https://github.com/Waishnav/devspace/blob/main/docs/security.md>
+- Setup Guide：<https://github.com/Waishnav/devspace/blob/main/docs/setup.md>
+- Configuration Reference：<https://github.com/Waishnav/devspace/blob/main/docs/configuration.md>
+- Security Model：<https://github.com/Waishnav/devspace/blob/main/docs/security.md>
 - Cloudflare Tunnel：<https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/>
 - OpenAI Apps / MCP：<https://help.openai.com/en/articles/12584461-developer-mode-apps-and-full-mcp-connectors-in-chatgpt-beta>
 
 > [!NOTE]
-> DevSpace、ChatGPT 自定义 MCP、Cloudflare Tunnel 都属于持续更新的组件。长期维护这篇 Wiki 时，优先以项目官方 README、Setup Guide 和当前 ChatGPT 产品文档为准，并在升级后重新验证完整链路。
+> DevSpace、ChatGPT MCP、Tunnel 和相关 Agent 能力都在持续变化。长期维护本文时，应优先保留“架构、权限边界、工作流”这些稳定知识，把具体版本参数和 UI 操作路径以官方最新文档为准。
