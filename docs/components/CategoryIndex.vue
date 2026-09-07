@@ -54,9 +54,15 @@ const categoryData: Record<CategoryKey, Category> = {
       { title: 'systemd：Linux 服务的生命周期管理', desc: '理解 systemd 为什么存在、Unit 与依赖关系、服务创建、日志、自动重启、override 和 Timer。', link: '/linux/systemd', tag: 'systemd' },
       { title: 'CPU、内存、负载与进程排查', desc: '理解 load average、available、RSS、I/O wait、OOM 与 cgroup，建立资源问题的判断顺序。', link: '/linux/process-resource', tag: '资源排障' },
       { title: '磁盘、文件系统与空间排查', desc: '从块设备、挂载点、容量、inode 到 df/du 不一致和 deleted-open 文件，系统定位磁盘满问题。', link: '/linux/disk-filesystem', tag: '磁盘' },
+      { title: '磁盘挂载与 LVM', desc: '从块设备、分区、PV/VG/LV、文件系统到 fstab 和扩容，理解 Linux 存储每一层的关系。', link: '/linux/mount-lvm', tag: '存储管理' },
+      { title: 'Linux 权限体系：从 rwx 到 ACL', desc: '理解 Owner/Group/Others、目录执行权限、umask、setgid、ACL 与 Permission denied 的排查顺序。', link: '/linux/permissions', tag: '权限' },
+      { title: 'Linux 日志体系：journald 与 logrotate', desc: '梳理日志产生、收集、保存和轮转链路，掌握 journalctl、传统日志与磁盘占用排查。', link: '/linux/logging-logrotate', tag: '日志' },
       { title: '端口、Socket 与进程定位', desc: '理解监听地址、TCP 状态、ss/lsof、端口冲突，以及 Docker/containerd 场景下如何追到真正服务。', link: '/linux/ports-processes', tag: '端口' },
       { title: 'DNS 解析链路与缓存排障', desc: '从 NSS、hosts、systemd-resolved、resolv.conf 到上游 DNS，解释为什么 dig 正常应用仍可能解析异常。', link: '/linux/dns-troubleshooting', tag: 'DNS' },
       { title: 'Linux 网络连通性排障', desc: '沿接口、路由、DNS、TCP、TLS、HTTP 分层检查 timeout、refused、reset 和 IPv4/IPv6 问题。', link: '/linux/network-troubleshooting', tag: '网络' },
+      { title: 'Linux 防火墙：Netfilter 到 nftables', desc: '理解 Netfilter 数据包路径以及 nftables、iptables、firewalld、ufw 的关系，系统排查端口访问问题。', link: '/linux/firewall', tag: '防火墙' },
+      { title: 'SSH：远程登录、密钥与跳板机', desc: '从加密通道、主机身份和用户认证三层理解 SSH，并覆盖密钥、ProxyJump、端口转发与常见故障。', link: '/linux/ssh', tag: 'SSH' },
+      { title: 'Shell 管道、重定向与退出码', desc: '理解 stdin/stdout/stderr、管道、tee、退出码与 pipefail，掌握 Linux 命令能够组合起来的根本机制。', link: '/linux/shell-pipeline-redirection', tag: 'Shell' },
       { title: 'sed：面向文本流的编辑器', desc: '从 stream editor 的工作模型理解替换、地址范围、正则、原地修改和批量配置变更，而不是死记语法。', link: '/linux/sed', tag: '文本处理' },
       { title: 'grep、find 与 xargs：Linux 批处理三件套', desc: '围绕“找对象、找内容、交给下一步”理解文件检索、批量执行、NUL 分隔和安全修改流程。', link: '/linux/grep-find-xargs', tag: 'Shell 批处理' }
     ]
