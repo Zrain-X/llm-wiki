@@ -43,7 +43,7 @@ const filtered = computed(() => {
     >{{ item }}</button>
   </div>
 
-  <div class="model-grid">
+  <div v-if="filtered.length" class="model-grid">
     <article v-for="model in filtered" :key="model.id" class="model-card">
       <div class="model-provider">{{ model.provider }}</div>
       <h3>{{ model.name }}</h3>
@@ -54,6 +54,9 @@ const filtered = computed(() => {
         </span>
       </div>
     </article>
+  </div>
+  <div v-else class="model-empty" role="status">
+    没有找到匹配的模型，请尝试其他关键词或厂商。
   </div>
 
   <p class="wiki-note">当前为界面 MVP 示例数据；精确模型版本、价格和上下文将在引用官方来源后逐项核验。</p>

@@ -248,6 +248,116 @@
 }
 
 /* --------------------------------------------------------------------------
+ * Local search modal: align result rows, hierarchy and shortcuts with the
+ * rest of the glass visual system instead of leaving VitePress defaults.
+ * -------------------------------------------------------------------------- */
+.VPLocalSearchBox .backdrop {
+  background: rgba(28, 35, 54, .28) !important;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.VPLocalSearchBox .shell {
+  gap: 12px !important;
+  padding: 14px !important;
+  border: 1px solid var(--wiki-line) !important;
+  border-radius: 20px !important;
+  background: var(--wiki-glass-strong) !important;
+  box-shadow: 0 24px 70px rgba(47, 62, 99, .20) !important;
+  backdrop-filter: blur(24px) saturate(145%);
+  -webkit-backdrop-filter: blur(24px) saturate(145%);
+}
+
+.VPLocalSearchBox .search-bar {
+  border-color: var(--wiki-line-strong) !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, .50);
+  transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
+}
+
+.VPLocalSearchBox .search-bar:focus-within {
+  border-color: rgba(79, 114, 255, .52) !important;
+  background: rgba(255, 255, 255, .72);
+  box-shadow: 0 0 0 3px rgba(79, 114, 255, .10);
+}
+
+.VPLocalSearchBox .results {
+  gap: 7px !important;
+}
+
+.VPLocalSearchBox .result {
+  border: 1px solid var(--wiki-line) !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, .36) !important;
+  transition: border-color .14s ease, background-color .14s ease, box-shadow .14s ease !important;
+}
+
+.VPLocalSearchBox .result:hover,
+.VPLocalSearchBox .result.selected {
+  border-color: rgba(79, 114, 255, .30) !important;
+  background: rgba(255, 255, 255, .72) !important;
+  box-shadow: inset 3px 0 0 rgba(79, 114, 255, .58);
+}
+
+.VPLocalSearchBox .title.main {
+  color: var(--vp-c-text-1);
+  font-weight: 700 !important;
+}
+
+.VPLocalSearchBox .title:not(.main),
+.VPLocalSearchBox .title-icon {
+  color: var(--vp-c-text-3);
+}
+
+.VPLocalSearchBox .excerpt {
+  opacity: .64 !important;
+}
+
+.VPLocalSearchBox .result.selected .excerpt {
+  opacity: .92 !important;
+}
+
+.VPLocalSearchBox .search-keyboard-shortcuts {
+  padding-top: 10px;
+  border-top: 1px solid var(--wiki-line);
+  color: var(--vp-c-text-3);
+  opacity: 1 !important;
+}
+
+.VPLocalSearchBox .search-keyboard-shortcuts kbd {
+  border-color: var(--wiki-line-strong) !important;
+  border-radius: 7px !important;
+  background: rgba(255, 255, 255, .52) !important;
+  box-shadow: 0 2px 5px rgba(55, 70, 105, .08) !important;
+}
+
+.dark .VPLocalSearchBox .backdrop {
+  background: rgba(3, 7, 18, .58) !important;
+}
+
+.dark .VPLocalSearchBox .search-bar,
+.dark .VPLocalSearchBox .result {
+  background: rgba(255, 255, 255, .045) !important;
+}
+
+.dark .VPLocalSearchBox .search-bar:focus-within,
+.dark .VPLocalSearchBox .result:hover,
+.dark .VPLocalSearchBox .result.selected {
+  background: rgba(255, 255, 255, .085) !important;
+}
+
+.dark .VPLocalSearchBox .search-keyboard-shortcuts kbd {
+  background: rgba(255, 255, 255, .055) !important;
+}
+
+@media (max-width: 767px) {
+  .VPLocalSearchBox .shell {
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
  * Footer and mobile navigation
  * -------------------------------------------------------------------------- */
 .VPFooter {
@@ -291,7 +401,10 @@
 .wiki-recent-row:focus-visible,
 .wiki-article-row:focus-visible,
 .VPDocAsideOutline .outline-link:focus-visible,
-.VPDocFooter .pager-link:focus-visible {
+.VPDocFooter .pager-link:focus-visible,
+.explorer-search:focus-visible,
+.filter-chip:focus-visible,
+.compare-selects select:focus-visible {
   outline: 2px solid rgba(79, 114, 255, .68) !important;
   outline-offset: 3px;
 }
@@ -302,7 +415,8 @@
   .wiki-stat-card,
   .wiki-recent-row,
   .wiki-article-row,
-  .VPDocFooter .pager-link {
+  .VPDocFooter .pager-link,
+  .VPLocalSearchBox .result {
     transition: none !important;
     transform: none !important;
   }

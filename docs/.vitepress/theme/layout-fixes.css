@@ -82,10 +82,10 @@
 }
 
 /* --------------------------------------------------------------------------
- * Tablet navigation: seven categories are too tight at 768-959px. Use the
- * existing VitePress menu button in this range instead of squeezing links.
+ * Medium-width navigation: seven categories do not fit cleanly below 1080px.
+ * Use the existing VitePress menu button instead of squeezing links.
  * -------------------------------------------------------------------------- */
-@media (min-width: 768px) and (max-width: 959px) {
+@media (min-width: 768px) and (max-width: 1079px) {
   .VPNavBarMenu {
     display: none !important;
   }
@@ -96,8 +96,20 @@
   }
 }
 
+@media (min-width: 1080px) and (max-width: 1180px) {
+  .VPNavBarMenu {
+    gap: 1px;
+  }
+
+  .VPNavBarMenuLink {
+    padding-inline: 7px !important;
+    font-size: 13px !important;
+  }
+}
+
 /* --------------------------------------------------------------------------
  * Category index density. Long categories such as Linux should scan quickly.
+ * Rows are list rows inside one glass container, not partial rounded cards.
  * -------------------------------------------------------------------------- */
 .wiki-category-page {
   padding-top: 28px;
@@ -108,11 +120,26 @@
 }
 
 .wiki-article-list {
+  overflow: hidden;
   padding: 18px;
 }
 
 .wiki-article-row {
+  position: relative;
   padding: 14px 13px;
+  border-top: 0 !important;
+  border-radius: 0 !important;
+}
+
+.wiki-article-row + .wiki-article-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 13px;
+  right: 13px;
+  height: 1px;
+  background: var(--wiki-line);
+  pointer-events: none;
 }
 
 .wiki-article-copy h3 {
@@ -121,6 +148,42 @@
 
 .wiki-article-copy p {
   line-height: 1.55;
+}
+
+/* --------------------------------------------------------------------------
+ * Recent updates use the same "one container + plain rows" visual grammar.
+ * These rules replace the former recent-list.css patch layer.
+ * -------------------------------------------------------------------------- */
+.wiki-recent-list {
+  overflow: hidden;
+}
+
+.wiki-recent-row {
+  position: relative;
+  border-top: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.wiki-recent-row + .wiki-recent-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: var(--wiki-line);
+  pointer-events: none;
+}
+
+.wiki-recent-row:hover {
+  background: rgba(255, 255, 255, .48) !important;
+  box-shadow: none !important;
+}
+
+.dark .wiki-recent-row:hover {
+  background: rgba(255, 255, 255, .045) !important;
 }
 
 /* --------------------------------------------------------------------------
@@ -145,9 +208,42 @@
   box-shadow: 0 8px 24px rgba(70, 91, 148, .065);
 }
 
+/* Keep the gradient marker, but return H2 text to the normal reading color. */
+.vp-doc h2 {
+  color: var(--vp-c-text-1);
+}
+
+/* Match previous/next navigation to the restrained article glass strength. */
+.VPDocFooter .pager-link {
+  border-color: rgba(105, 124, 166, .16) !important;
+  background: rgba(255, 255, 255, .52);
+  box-shadow: 0 8px 24px rgba(70, 91, 148, .055);
+}
+
+.dark .VPDocFooter .pager-link {
+  border-color: rgba(255, 255, 255, .08) !important;
+  background: rgba(24, 31, 48, .54);
+}
+
 /* --------------------------------------------------------------------------
- * Mobile: keep category cards useful but compact. Counts stay on the same row
- * and descriptions disappear only on very narrow phones.
+ * Model explorer empty state.
+ * -------------------------------------------------------------------------- */
+.model-empty {
+  padding: 28px 18px;
+  border: 1px dashed var(--wiki-line-strong);
+  border-radius: 14px;
+  color: var(--vp-c-text-2);
+  text-align: center;
+  background: rgba(255, 255, 255, .28);
+}
+
+.dark .model-empty {
+  background: rgba(255, 255, 255, .035);
+}
+
+/* --------------------------------------------------------------------------
+ * Mobile: keep the homepage compact and preserve the 2 + 2 + 2 + 1 domain
+ * grouping. Category rows and recent updates stay list-like and readable.
  * -------------------------------------------------------------------------- */
 @media (max-width: 720px) {
   .wiki-home-shell {
@@ -171,41 +267,51 @@
   }
 
   .VPHome .wiki-home-shell .wiki-domain-section .wiki-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
 
   .VPHome .wiki-home-shell .wiki-domain-section .wiki-stat-card {
-    grid-template-columns: 40px minmax(0, 1fr) auto;
-    gap: 10px;
-    min-height: 76px;
-    padding: 10px 12px;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    gap: 7px;
+    min-height: 58px;
+    padding: 9px 10px;
+  }
+
+  .VPHome .wiki-home-shell .wiki-domain-section .wiki-stat-card.is-wide {
+    grid-column: 1 / -1;
   }
 
   .VPHome .wiki-home-shell .wiki-domain-section .wiki-stat-icon {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    font-size: 15px;
   }
 
   .VPHome .wiki-home-shell .wiki-domain-section .wiki-stat-copy h3 {
-    margin-bottom: 2px;
+    margin: 0;
+    font-size: 13px;
+    white-space: nowrap;
   }
 
   .VPHome .wiki-home-shell .wiki-domain-section .wiki-stat-copy p {
-    display: -webkit-box;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    display: none;
   }
 
   .VPHome .wiki-home-shell .wiki-domain-section .wiki-stat-count {
     grid-column: auto !important;
     display: block !important;
-    min-width: 48px;
+    min-width: 0;
     text-align: right !important;
   }
 
   .VPHome .wiki-home-shell .wiki-domain-section .wiki-stat-count strong {
-    font-size: 20px;
+    font-size: 18px;
+  }
+
+  .VPHome .wiki-home-shell .wiki-domain-section .wiki-stat-count small {
+    display: none;
   }
 
   .wiki-category-page {
@@ -225,6 +331,11 @@
     padding: 12px 8px;
   }
 
+  .wiki-article-row + .wiki-article-row::before {
+    left: 8px;
+    right: 8px;
+  }
+
   .wiki-article-copy p {
     display: -webkit-box;
     overflow: hidden;
@@ -238,6 +349,28 @@
   }
 }
 
+@media (max-width: 700px) {
+  .wiki-recent-row {
+    padding: 12px 8px;
+  }
+
+  .wiki-recent-row + .wiki-recent-row::before {
+    left: 8px;
+    right: 8px;
+  }
+
+  .wiki-recent-copy p {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .wiki-recent-meta > span:last-child {
+    display: none;
+  }
+}
+
 @media (max-width: 480px) {
   .wiki-home-hero h1 {
     font-size: 40px;
@@ -248,27 +381,19 @@
     font-size: 14px;
   }
 
-  .VPHome .wiki-home-shell .wiki-domain-section .wiki-stat-card {
-    min-height: 68px;
-    padding-top: 9px;
-    padding-bottom: 9px;
-  }
-
-  .VPHome .wiki-home-shell .wiki-domain-section .wiki-stat-copy p {
-    display: none;
-  }
-
-  .VPHome .wiki-home-shell .wiki-domain-section .wiki-stat-count small {
-    display: block;
-    margin-top: 1px;
-    font-size: 10px;
-  }
-
   .wiki-list-head {
     padding-bottom: 10px;
   }
 
   .wiki-article-copy h3 {
     font-size: 16px;
+  }
+
+  .wiki-recent-copy p {
+    display: none;
+  }
+
+  .wiki-recent-copy h3 {
+    line-height: 1.45;
   }
 }
