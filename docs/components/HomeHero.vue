@@ -129,9 +129,16 @@ const totalArticles = entries.reduce((sum, entry) => sum + entry.count, 0)
 </template>
 
 <style scoped>
+/* Homepage section headings must not inherit the article-body h2 spacing. */
+.wiki-home-section .wiki-section-head h2 {
+  margin: 0 0 4px;
+  padding: 0;
+  line-height: 1.3;
+}
+
 .wiki-domain-section {
-  margin-top: 10px;
-  padding-top: 18px;
+  margin-top: 12px;
+  padding: 16px 20px 20px;
 }
 
 .wiki-domain-section .wiki-section-head {
@@ -149,7 +156,34 @@ const totalArticles = entries.reduce((sum, entry) => sum + entry.count, 0)
   align-items: center;
   gap: 14px;
   padding: 16px 18px;
+  border: 1px solid rgba(91, 111, 151, .22);
+  background: rgba(255, 255, 255, .68);
+  box-shadow:
+    0 1px 2px rgba(58, 75, 112, .05),
+    0 8px 22px rgba(70, 91, 148, .065),
+    inset 0 1px 0 rgba(255, 255, 255, .78);
   text-align: left;
+}
+
+.wiki-domain-section .wiki-stat-card:hover {
+  border-color: rgba(79, 114, 255, .32);
+  background: rgba(255, 255, 255, .84);
+  box-shadow:
+    0 2px 4px rgba(58, 75, 112, .06),
+    0 12px 28px rgba(70, 91, 148, .12),
+    inset 0 1px 0 rgba(255, 255, 255, .88);
+}
+
+:global(.dark) .wiki-domain-section .wiki-stat-card {
+  border-color: rgba(255, 255, 255, .13);
+  background: rgba(255, 255, 255, .055);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .14);
+}
+
+:global(.dark) .wiki-domain-section .wiki-stat-card:hover {
+  border-color: rgba(142, 159, 255, .28);
+  background: rgba(255, 255, 255, .085);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .20);
 }
 
 .wiki-domain-section .wiki-stat-card.is-wide {
@@ -190,6 +224,10 @@ const totalArticles = entries.reduce((sum, entry) => sum + entry.count, 0)
 }
 
 @media (max-width: 720px) {
+  .wiki-domain-section {
+    padding: 15px 14px 17px;
+  }
+
   .wiki-domain-section .wiki-stats-grid {
     grid-template-columns: 1fr;
   }
