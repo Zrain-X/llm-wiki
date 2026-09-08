@@ -8,6 +8,7 @@ import HomeHero from '../../components/HomeHero.vue'
 import CategoryIndex from '../../components/CategoryIndex.vue'
 import ModelExplorer from '../../components/ModelExplorer.vue'
 import ModelCompare from '../../components/ModelCompare.vue'
+import './layout-fixes.css'
 
 export default {
   extends: DefaultTheme,
