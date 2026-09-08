@@ -10,6 +10,7 @@ import ModelExplorer from '../../components/ModelExplorer.vue'
 import ModelCompare from '../../components/ModelCompare.vue'
 // Keep final visual corrections last so they override theme and component defaults.
 import './layout-fixes.css'
+import './recent-list.css'
 
 export default {
   extends: DefaultTheme,
