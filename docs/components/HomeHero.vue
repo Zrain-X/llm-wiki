@@ -1,15 +1,24 @@
 <script setup lang="ts">
 import { withBase } from 'vitepress'
 
+const articleFiles = import.meta.glob('../{database,bigdata,linux,self-hosted,backend,frontend,ai-agent}/**/*.md')
+
+const countArticles = (slug: string) => Object.keys(articleFiles).filter((path) => {
+  return path.startsWith(`../${slug}/`) && !path.endsWith('/index.md')
+}).length
+
 const entries = [
-  { icon: '◉', title: '数据库', count: 9, desc: '国产化迁移、跨库兼容、SQL 调优与排障。', link: '/database/', tone: 'blue' },
-  { icon: '▥', title: '大数据', count: 1, desc: 'Kafka、Hadoop、Spark、Hive 与数据平台。', link: '/bigdata/', tone: 'purple' },
-  { icon: '>_', title: 'Linux 运维', count: 1, desc: 'Shell、网络、进程、磁盘与 systemd。', link: '/linux/', tone: 'green' },
-  { icon: '⌂', title: '自托管', count: 2, desc: 'Docker、VPS、NAS、网络与本地服务。', link: '/self-hosted/', tone: 'orange' },
-  { icon: '{ }', title: '后端开发', count: 1, desc: 'Python、FastAPI、Go 与服务端工程。', link: '/backend/', tone: 'pink' },
-  { icon: '◇', title: '前端开发', count: 1, desc: 'Vue 3、TypeScript、Vite 与前端工程。', link: '/frontend/', tone: 'cyan' },
-  { icon: '✦', title: 'AI / Agent', count: 6, desc: 'LLM、Coding Agent、MCP、RAG 与模型。', link: '/ai-agent/', tone: 'violet' }
-]
+  { slug: 'database', icon: '◉', title: '数据库', desc: '国产化迁移、跨库兼容、SQL 调优与排障。', link: '/database/', tone: 'blue' },
+  { slug: 'bigdata', icon: '▥', title: '大数据', desc: 'Kafka、Hadoop、Spark、Hive 与数据平台。', link: '/bigdata/', tone: 'purple' },
+  { slug: 'linux', icon: '>_', title: 'Linux 运维', desc: 'Shell、网络、进程、磁盘与 systemd。', link: '/linux/', tone: 'green' },
+  { slug: 'self-hosted', icon: '⌂', title: '自托管', desc: 'Docker、VPS、NAS、网络与本地服务。', link: '/self-hosted/', tone: 'orange' },
+  { slug: 'backend', icon: '{ }', title: '后端开发', desc: 'Python、FastAPI、Go 与服务端工程。', link: '/backend/', tone: 'pink' },
+  { slug: 'frontend', icon: '◇', title: '前端开发', desc: 'Vue 3、TypeScript、Vite 与前端工程。', link: '/frontend/', tone: 'cyan' },
+  { slug: 'ai-agent', icon: '✦', title: 'AI / Agent', desc: 'LLM、Coding Agent、MCP、RAG 与模型。', link: '/ai-agent/', tone: 'violet' }
+].map((entry) => ({
+  ...entry,
+  count: countArticles(entry.slug)
+}))
 
 const recent = [
   {
@@ -65,7 +74,7 @@ const totalArticles = entries.reduce((sum, entry) => sum + entry.count, 0)
       </aside>
     </section>
 
-    <section class="wiki-home-section wiki-glass-panel">
+    <section class="wiki-home-section wiki-domain-section wiki-glass-panel">
       <div class="wiki-section-head">
         <div>
           <h2>知识领域</h2>
@@ -78,13 +87,18 @@ const totalArticles = entries.reduce((sum, entry) => sum + entry.count, 0)
           v-for="entry in entries"
           :key="entry.title"
           class="wiki-stat-card"
+          :class="{ 'is-wide': entry.slug === 'ai-agent' }"
           :href="withBase(entry.link)"
         >
           <span class="wiki-stat-icon" :class="`tone-${entry.tone}`">{{ entry.icon }}</span>
-          <h3>{{ entry.title }}</h3>
-          <strong>{{ entry.count }}</strong>
-          <small>篇文章</small>
-          <p>{{ entry.desc }}</p>
+          <div class="wiki-stat-copy">
+            <h3>{{ entry.title }}</h3>
+            <p>{{ entry.desc }}</p>
+          </div>
+          <div class="wiki-stat-count">
+            <strong>{{ entry.count }}</strong>
+            <small>篇文章</small>
+          </div>
         </a>
       </div>
     </section>
@@ -113,3 +127,89 @@ const totalArticles = entries.reduce((sum, entry) => sum + entry.count, 0)
     </section>
   </div>
 </template>
+
+<style scoped>
+.wiki-domain-section {
+  margin-top: 10px;
+  padding-top: 18px;
+}
+
+.wiki-domain-section .wiki-section-head {
+  margin-bottom: 14px;
+}
+
+.wiki-domain-section .wiki-stats-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.wiki-domain-section .wiki-stat-card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  text-align: left;
+}
+
+.wiki-domain-section .wiki-stat-card.is-wide {
+  grid-column: 1 / -1;
+}
+
+.wiki-domain-section .wiki-stat-icon {
+  margin: 0;
+}
+
+.wiki-domain-section .wiki-stat-copy {
+  min-width: 0;
+}
+
+.wiki-domain-section .wiki-stat-copy h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.wiki-domain-section .wiki-stat-copy p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.wiki-domain-section .wiki-stat-count {
+  min-width: 58px;
+  text-align: right;
+}
+
+.wiki-domain-section .wiki-stat-count strong {
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.wiki-domain-section .wiki-stat-count small {
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .wiki-domain-section .wiki-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wiki-domain-section .wiki-stat-card.is-wide {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .wiki-domain-section .wiki-stat-card {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .wiki-domain-section .wiki-stat-count {
+    grid-column: 2;
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    text-align: left;
+  }
+}
+</style>
