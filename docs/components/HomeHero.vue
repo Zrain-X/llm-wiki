@@ -174,13 +174,13 @@ const totalArticles = entries.reduce((sum, entry) => sum + entry.count, 0)
     inset 0 1px 0 rgba(255, 255, 255, .88);
 }
 
-:global(.dark) .wiki-domain-section .wiki-stat-card {
+:global(.dark .wiki-domain-section .wiki-stat-card) {
   border-color: rgba(255, 255, 255, .13);
   background: rgba(255, 255, 255, .055);
   box-shadow: 0 8px 22px rgba(0, 0, 0, .14);
 }
 
-:global(.dark) .wiki-domain-section .wiki-stat-card:hover {
+:global(.dark .wiki-domain-section .wiki-stat-card:hover) {
   border-color: rgba(142, 159, 255, .28);
   background: rgba(255, 255, 255, .085);
   box-shadow: 0 12px 28px rgba(0, 0, 0, .20);
